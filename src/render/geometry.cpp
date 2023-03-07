@@ -1,4 +1,4 @@
-#include "geometry.h"
+#include "geometry.hpp"
 #include <memory.h>
 #include <glm/gtx/matrix_transform_2d.hpp>
 #include <glm/ext/scalar_constants.hpp>

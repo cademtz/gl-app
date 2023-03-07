@@ -1,6 +1,6 @@
 #pragma once
-#include <render/rendergui.h>
-#include "programglsl.h"
+#include <render/rendergui.hpp>
+#include "programglsl.hpp"
 
 class CRenderGuiGlsl : public CRenderGui
 {

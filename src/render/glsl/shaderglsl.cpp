@@ -1,4 +1,4 @@
-#include "shaderglsl.h"
+#include "shaderglsl.hpp"
 #include <vector>
 
 bool CShaderGlsl::Compile(GLenum GlType, const char* GlslSource)

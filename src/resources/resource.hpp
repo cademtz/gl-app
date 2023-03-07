@@ -4,7 +4,7 @@
 #include <memory>
 #include <stdint.h>
 
-struct CResource
+class CResource
 {
 public:
     ~CResource();

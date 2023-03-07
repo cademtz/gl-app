@@ -1,6 +1,5 @@
-#include "app.h"
-#include <resource.h>
-#include <render/geometry.h>
+#include "app.hpp"
+#include <render/geometry.hpp>
 #include <stb_truetype.h>
 
 static GLFWwindow* window = nullptr;
@@ -23,9 +22,6 @@ Geometry2d geom_buf;
 
 void App::OnStartup()
 {
-    std::shared_ptr<CResource> font_data = CResource::Load("Open_Sans/static/OpenSans/OpenSans-Regular.ttf");
-    font_data->Data();
-
     guiRenderer->Init();
 
     glClearColor(0, 0, 0, 1);
@@ -69,6 +65,10 @@ void App::KeyCallback(GLFWwindow *window, int key, int scancode, int action, int
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
+}
+
+void App::CursorCallback(GLFWwindow* window, double xpos, double ypos)
+{
 }
 
 void App::SetWindow(GLFWwindow* Window) { window = Window; }

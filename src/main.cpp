@@ -1,9 +1,10 @@
-#include <platform.h>
-#include <app.h>
-#include <render/glsl/renderguiglsl.h>
+#include <platform.hpp>
+#include <app.hpp>
+#include <render/glsl/renderguiglsl.hpp>
 
 static void error_callback(int error, const char *description);
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
+static void cursor_callback(GLFWwindow* window, double xpos, double ypos);
 static void setup_glfw();
 static void setup_opengl();
 
@@ -46,6 +47,7 @@ static void setup_glfw()
     }
 
     glfwSetKeyCallback(window, key_callback);
+    glfwSetCursorPosCallback(window, cursor_callback);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
     
@@ -71,4 +73,7 @@ static void error_callback(int error, const char *description) {
 }
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     App::KeyCallback(window, key, scancode, action, mods);
+}
+static void cursor_callback(GLFWwindow* window, double xpos, double ypos) {
+    App::CursorCallback(window, xpos, ypos);
 }

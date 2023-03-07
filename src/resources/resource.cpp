@@ -1,4 +1,4 @@
-#include "resource.h"
+#include "resource.hpp"
 #include <string.h>
 
 std::map<std::string, std::shared_ptr<CResource>> CResource::loadedResMap;

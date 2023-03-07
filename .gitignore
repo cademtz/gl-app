@@ -2,3 +2,4 @@
 /build_wasm
 /emsdk
 /.vscode
+.editorconfig

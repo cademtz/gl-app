@@ -1,6 +1,6 @@
 #pragma once
-#include "render.h"
-#include "geometry.h"
+#include "render.hpp"
+#include "geometry.hpp"
 
 // Renders 2D geometry starting from the top-left (0, 0) and ending at the number of pixels on screen.
 class CRenderGui : public CRender

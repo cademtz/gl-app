@@ -1,4 +1,4 @@
-#include "programglsl.h"
+#include "programglsl.hpp"
 #include <vector>
 
 CProgramGlsl::CProgramGlsl() {

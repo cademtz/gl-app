@@ -1,5 +1,5 @@
 #pragma once
-#include "shaderglsl.h"
+#include "shaderglsl.hpp"
 
 class CProgramGlsl
 {
