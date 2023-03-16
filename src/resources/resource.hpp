@@ -1,29 +1,45 @@
 #pragma once
-#include <map>
 #include <string>
 #include <memory>
-#include <stdint.h>
+#include <unordered_map>
 
+/**
+ * @brief Load and access data provided with the program
+ */
 class CResource
 {
 public:
-    ~CResource();
-
+    /**
+     * @brief Loads a copy of the resource in memory or returns an existing pointer
+     *
+     * @param Name A relative URL identifying the resource to load
+     * @return A reuseable resource pointer, or `nullptr` if the resource could not be loaded
+     */
     static const std::shared_ptr<CResource> Load(const std::string& Name);
 
-    const char* Data() const { return m_data; }
-    size_t Len() const { return m_len; }
+    /**
+     * @return Array of bytes contained in the resource
+     */
+    virtual const char* Data() const = 0;
+
+    /**
+     * @return Length of the byte array returned by Data()
+     */
+    virtual size_t Length() const = 0;
+
+protected:
+    CResource() {}
+
+    /**
+     * @brief Load a copy of the resource in memory
+     * 
+     * @param Path A relative URL identifying the resource to load
+     * @return A reusable resource pointer, or `nullptr` if the resource could not be loaded
+     */
+    static std::shared_ptr<CResource> Load_Impl(const std::string& Path);
+
+    static std::unordered_map<std::string, std::shared_ptr<CResource>> loadedResMap;
 
 private:
-    CResource() { }
-    bool LoadFile(const char* Path);
-    
-    static std::map<std::string, std::shared_ptr<CResource>> loadedResMap;
-
-    const char* m_data = nullptr;
-    size_t m_len = 0;
-
-#ifdef __EMSCRIPTEN__
-    struct emscripten_fetch_t* m_fetch;
-#endif
+    CResource(const CResource&) = delete;
 };

@@ -1,6 +1,7 @@
 #include <platform.hpp>
 #include <app.hpp>
 #include <render/glsl/renderguiglsl.hpp>
+#include <cstdio>
 
 static void error_callback(int error, const char *description);
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -10,8 +11,7 @@ static void setup_opengl();
 
 extern "C" int main(int argc, char** argv)
 {
-    setup_glfw();
-    setup_opengl();
+    Platform::Setup();
 
     App::OnStartup();
 
@@ -26,6 +26,8 @@ extern "C" int main(int argc, char** argv)
 
     glfwDestroyWindow(App::GetWindow());
     glfwTerminate();
+
+    Platform::Cleanup();
     exit(EXIT_SUCCESS);
 }
 

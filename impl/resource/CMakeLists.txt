@@ -1,0 +1,5 @@
+if (EMSCRIPTEN)
+    add_subdirectory(emscripten)
+else()
+    add_subdirectory(libcxx)
+endif()

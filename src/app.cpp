@@ -2,6 +2,11 @@
 #include <render/geometry.hpp>
 #include <stb_truetype.h>
 
+// Temporary includes for testing
+#include <resources/resource.hpp>
+#include <string_view>
+#include <iostream>
+
 static GLFWwindow* window = nullptr;
 static std::unique_ptr<CRenderGui> guiRenderer = nullptr;
 static const Geometry2d base_geom = {
@@ -22,6 +27,7 @@ Geometry2d geom_buf;
 
 void App::OnStartup()
 {
+
     guiRenderer->Init();
 
     glClearColor(0, 0, 0, 1);
@@ -33,6 +39,24 @@ void App::OnClose() {
 
 void App::Loop()
 {
+    // Printing only works in the loop function, so we must cause a flush here
+    static bool firstRun = true;
+    if (firstRun) {
+        std::fflush(stdout);
+
+        std::cout << "Attempting to load resource..." << std::endl;
+        std::shared_ptr<CResource> resPtr = CResource::Load("resources/Open_Sans/README.txt");
+        if (resPtr) {
+            std::cout << "Resource contents:" << std::endl;
+            std::cout << std::string_view(resPtr->Data(), resPtr->Length()) << std::endl;
+        }
+        else {
+            std::cout << "[!] Resource failed to load" << std::endl;
+        }
+
+        firstRun = false;
+    }
+
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
     guiRenderer->SetScreenSize(width, height);
@@ -61,7 +85,7 @@ void App::Loop()
     glfwPollEvents();
 }
 
-void App::KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+void App::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);

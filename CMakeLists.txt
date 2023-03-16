@@ -2,21 +2,28 @@ cmake_minimum_required(VERSION 3.16)
 project(Glap)
 
 find_package(OpenGL REQUIRED)
+add_executable(Glap)
+include_directories(impl)
+
+file(GLOB_RECURSE GLAP_SOURCE_LIST "src/*.cpp")
+target_sources(Glap PUBLIC ${GLAP_SOURCE_LIST})
 
 if (EMSCRIPTEN)
-	file(GLOB_RECURSE GLAP_SOURCE_LIST "src/*.cpp")
-	add_executable(Glap ${GLAP_SOURCE_LIST})
-
+	
+	#set(CMAKE_CXX_FLAGS "-pthread")
 	set(CMAKE_EXE_LINKER_FLAGS
-		"-s USE_GLFW=3 -s FETCH --proxy-to-worker"
+		"-s USE_GLFW=3 -s FETCH"
 		# -s USE_WEBGL2=1 # I think this version is already default or higher
 	)
+
+	# Emscripten already provides OpenGL-related libraries, except the glfw headers apparently
 	include_directories(deps/glfw3/include)
 
+	file(COPY shell.html shell.js DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
+
 else()
-	# Find the appropriate GLFW3 library ourselves
-	file(GLOB_RECURSE GLAP_SOURCE_LIST "src/*.cpp")
-	add_executable(Glap ${GLAP_SOURCE_LIST} deps/glad/src/gl.c)
+	# Provide the appropriate OpenGL-related libraries ourselves
+	target_sources(Glap PUBLIC deps/glad/src/gl.c)
 
 	target_link_libraries(Glap OpenGL::GL)
 
@@ -30,8 +37,12 @@ else()
 	include_directories(deps/glad/include)
 endif()
 
+# Provide platform-specific implementations of our own classes
+add_subdirectory(impl)
+
 # Link all platform-independent libraries
 add_subdirectory(deps/glm)
+
 target_link_libraries(Glap glm)
 
 include_directories(
