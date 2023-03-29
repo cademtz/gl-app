@@ -1,5 +1,6 @@
 #pragma once
 #include <platform.hpp>
+#include <impl/render/opengl/opengl.hpp>
 
 class CShaderGlsl
 {

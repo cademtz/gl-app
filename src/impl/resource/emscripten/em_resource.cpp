@@ -38,19 +38,9 @@ std::shared_ptr<CResource> CResource::Load_Impl(const std::string& Path)
     std::cout << "Downloaded " << newRes->Length() << " bytes from " << Path << std::endl;
 
     return newRes;*/
-
-    // FIXME: Must download *after* all C code has stopped executing.
-    // Impossible to load resources as-needed.
-    // If we suddenly need to rebuild a font atlas and have to reload all fonts, that ENTIRE operation must be scheduled.
-    //  Everything stupid thing that relies on a resource must continue to leave all the other code to get helplessly raped by unresolved situations
-    // BUT, perhaps if we ran everything through a fiber, we could interrupt execution, wait for download, and resume!!!
-    // https://emscripten.org/docs/api_reference/fiber.h.html
-
-    // Bruh, you could just do this instead
-    // https://emscripten.org/docs/porting/asyncify.html#making-async-web-apis-behave-as-if-they-were-synchronous
     return nullptr;
 }
 
-CResource_Impl::~CResource_Impl() {
+CEmscriptenResource::~CEmscriptenResource() {
     emscripten_fetch_close(m_fetch);
 }

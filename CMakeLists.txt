@@ -3,17 +3,15 @@ project(Glap)
 
 find_package(OpenGL REQUIRED)
 add_executable(Glap)
-include_directories(impl)
 
-file(GLOB_RECURSE GLAP_SOURCE_LIST "src/*.cpp")
-target_sources(Glap PUBLIC ${GLAP_SOURCE_LIST})
+target_compile_features(Glap PUBLIC cxx_std_17)
+set(CXX_STANDARD_REQUIRED ON)
 
 if (EMSCRIPTEN)
 	
 	#set(CMAKE_CXX_FLAGS "-pthread")
 	set(CMAKE_EXE_LINKER_FLAGS
-		"-s USE_GLFW=3 -s FETCH"
-		# -s USE_WEBGL2=1 # I think this version is already default or higher
+		"-s USE_GLFW=3 -s FETCH -s USE_WEBGL2=1" # I think this version is already default or higher
 	)
 
 	# Emscripten already provides OpenGL-related libraries, except the glfw headers apparently
@@ -37,8 +35,7 @@ else()
 	include_directories(deps/glad/include)
 endif()
 
-# Provide platform-specific implementations of our own classes
-add_subdirectory(impl)
+add_subdirectory(src)
 
 # Link all platform-independent libraries
 add_subdirectory(deps/glm)

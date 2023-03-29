@@ -1,13 +1,15 @@
 #include "app.hpp"
 #include <render/geometry.hpp>
 #include <stb_truetype.h>
+#include <chrono>
 
 // Temporary includes for testing
+#include <impl/render/opengl/opengl.hpp>
+#include <impl/window/glfw/glfw.hpp>
 #include <resources/resource.hpp>
 #include <string_view>
 #include <iostream>
 
-static GLFWwindow* window = nullptr;
 static std::unique_ptr<CRenderGui> guiRenderer = nullptr;
 static const Geometry2d base_geom = {
     // Vertices
@@ -25,15 +27,11 @@ static const Geometry2d base_geom = {
 
 Geometry2d geom_buf;
 
-void App::OnStartup()
-{
-
+void App::OnSetup() {
     guiRenderer->Init();
-
-    glClearColor(0, 0, 0, 1);
 }
 
-void App::OnClose() {
+void App::OnCleanup() {
     guiRenderer = nullptr;
 }
 
@@ -58,19 +56,36 @@ void App::Loop()
     }
 
     int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
+    Platform::GetFrameBufferSize(&width, &height);
     guiRenderer->SetScreenSize(width, height);
 
     geom_buf.vertices.clear();
     geom_buf.indices.clear();
 
-    geom_buf.vertices.insert(geom_buf.vertices.begin(), base_geom.vertices.begin(), base_geom.vertices.end());
-    geom_buf.indices.insert(geom_buf.indices.begin(), base_geom.indices.begin(), base_geom.indices.end());
-
     PrimitiveBuilder2d shapes(geom_buf);
 
+    // Add a black rectangle covering the screen to overwrite the old buffer
+    shapes.SetColor(0, 0, 0);
+    shapes.Rectangle(0, 0, width, height);
+
+    // Append some geometry data manually
+    {
+        int vertex_base = geom_buf.vertices.size();
+        geom_buf.vertices.insert(geom_buf.vertices.end(), base_geom.vertices.begin(), base_geom.vertices.end());
+        for (vertexId_t id : base_geom.indices)
+            geom_buf.indices.push_back(id + vertex_base);
+    }
+
+    static const auto time_begin = std::chrono::high_resolution_clock::now();
+    auto time_now = std::chrono::high_resolution_clock::now();
+
+    using duration_type = std::chrono::nanoseconds;
+
+    auto duration = std::chrono::duration_cast<duration_type>(time_now - time_begin);
+    double duration_seconds = ((double)duration.count() / duration_type::period::den) * duration_type::period::num;
+
     shapes.SetAlign(PrimitiveBuilder2d::Align_Center);
-    shapes.SetRotation(glfwGetTime());
+    shapes.SetRotation(duration_seconds);
     shapes.SetColor(0, 1, 1);
     shapes.Rectangle(400, 400, 200, 50);
     shapes.SetColor(1, 0, 0);
@@ -78,25 +93,10 @@ void App::Loop()
 
     guiRenderer->UploadGeometry(geom_buf);
 
-    glClear(GL_COLOR_BUFFER_BIT);
     guiRenderer->Render();
 
-    glfwSwapBuffers(window);
-    glfwPollEvents();
+    glfwSwapBuffers(impl::glfw::window);
 }
-
-void App::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
-}
-
-void App::CursorCallback(GLFWwindow* window, double xpos, double ypos)
-{
-}
-
-void App::SetWindow(GLFWwindow* Window) { window = Window; }
-GLFWwindow* App::GetWindow() { return window; }
 
 void App::SetGuiRenderer(std::unique_ptr<CRenderGui>&& GuiRenderer) { guiRenderer = std::move(GuiRenderer); }
 const std::unique_ptr<CRenderGui>& App::GetGuiRenderer() { return guiRenderer; }

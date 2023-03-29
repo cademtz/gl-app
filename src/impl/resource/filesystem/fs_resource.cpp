@@ -1,4 +1,4 @@
-#include "libcxx_resource.hpp"
+#include "fs_resource.hpp"
 #include <fstream>
 
 #define RES_PATH_PREFIX _resPathPrefix.c_str()
@@ -14,23 +14,29 @@ static std::string ResPathHack()
 }
 static std::string _resPathPrefix = ResPathHack();
 
-std::shared_ptr<CResource> CResource::Load_Impl(const std::string& Path)
+std::shared_ptr<CFileSystemResource> CFileSystemResource::Load(const std::string& Path)
 {
     std::fstream file(Path, std::ios::in | std::ios::binary);
     if (!file.is_open())
-        return false;
+        return nullptr;
 
     file.seekg(0, std::ios::end);
 
-    size_t m_len = file.tellg();
+    size_t len = file.tellg();
     if (file.fail())
-        return false;
+        return nullptr;
     
-    char* data = new char[m_len];
+    char* data = new char[len];
 
     file.seekg(0, std::ios::beg);
-    file.read(data, m_len);
-    const char* m_data = reinterpret_cast<const char*>(data);
+    file.read(data, len);
 
-    return std::make_shared<CResource>(m_data, m_len);
+    CFileSystemResource res(data, len);
+
+    return std::make_shared<CFileSystemResource>(std::move(res));
+}
+
+
+std::shared_ptr<CResource> CResource::Load_Impl(const std::string& Path) {
+    return CFileSystemResource::Load(Path);
 }

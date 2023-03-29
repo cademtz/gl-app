@@ -1,5 +1,6 @@
 #include "shaderglsl.hpp"
 #include <vector>
+#include <cstddef>
 
 bool CShaderGlsl::Compile(GLenum GlType, const char* GlslSource)
 {

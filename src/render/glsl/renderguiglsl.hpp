@@ -1,5 +1,6 @@
 #pragma once
 #include <render/rendergui.hpp>
+#include <impl/render/opengl/opengl.hpp>
 #include "programglsl.hpp"
 
 class CRenderGuiGlsl : public CRenderGui

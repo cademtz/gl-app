@@ -1,81 +1,21 @@
 #include <platform.hpp>
 #include <app.hpp>
-#include <render/glsl/renderguiglsl.hpp>
 #include <cstdio>
-
-static void error_callback(int error, const char *description);
-static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
-static void cursor_callback(GLFWwindow* window, double xpos, double ypos);
-static void setup_glfw();
-static void setup_opengl();
 
 extern "C" int main(int argc, char** argv)
 {
     Platform::Setup();
 
-    App::OnStartup();
+    App::OnSetup();
 
-#ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop(&App::Loop, 0, true);
-#else
-    while (!glfwWindowShouldClose(App::GetWindow()))
-        App::Loop();
-#endif
-
-    App::OnClose();
-
-    glfwDestroyWindow(App::GetWindow());
-    glfwTerminate();
-
-    Platform::Cleanup();
-    exit(EXIT_SUCCESS);
-}
-
-static void setup_glfw()
-{
-    glfwSetErrorCallback(error_callback);
-
-    if (!glfwInit())
-        exit(EXIT_FAILURE);
+    Platform::AddRepeatingTask(
+        [] {
+            App::Loop();
+            return true;
+        }
+    );
     
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    Platform::RunTasksForever();
 
-    GLFWwindow* window = glfwCreateWindow(640, 480, "Simple example", NULL, NULL);
-    if (!window)
-    {
-        glfwTerminate();
-        exit(EXIT_FAILURE);
-    }
-
-    glfwSetKeyCallback(window, key_callback);
-    glfwSetCursorPosCallback(window, cursor_callback);
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
-    
-    App::SetWindow(window);
-}
-
-static void setup_opengl()
-{
-#ifndef __EMSCRIPTEN__
-    if (!gladLoadGL(glfwGetProcAddress))
-        PLATFORM_ERROR("Failed to initialize OpenGL context");
-#endif
-
-    // Enable alpha/transparency
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    App::SetGuiRenderer(std::make_unique<CRenderGuiGlsl>());
-}
-
-static void error_callback(int error, const char *description) {
-    PLATFORM_ERROR(description);
-}
-static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    App::KeyCallback(window, key, scancode, action, mods);
-}
-static void cursor_callback(GLFWwindow* window, double xpos, double ypos) {
-    App::CursorCallback(window, xpos, ypos);
+    Platform::Exit();
 }

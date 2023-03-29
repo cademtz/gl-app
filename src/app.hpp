@@ -5,14 +5,14 @@
 
 namespace App
 {
-    void OnStartup();
-    void OnClose();
-    void Loop();
-    void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
-    void CursorCallback(GLFWwindow* window, double xpos, double ypos);
+    void OnSetup();
+    void OnCleanup();
 
-    void SetWindow(GLFWwindow* Window);
-    GLFWwindow* GetWindow();
+    /**
+     * @brief Perform all the app's logic in one call, without waiting.
+     *  Handle pending inputs, render the next frame, and more.
+     */
+    void Loop();
 
     void SetGuiRenderer(std::unique_ptr<CRenderGui>&& Render);
     const std::unique_ptr<CRenderGui>& GetGuiRenderer();

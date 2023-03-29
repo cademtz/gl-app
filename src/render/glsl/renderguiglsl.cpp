@@ -3,13 +3,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 static const char* vertShader_src =
+"#version 300 es\n"
 "uniform mat4 mPixelToNormalized;"
-"attribute vec2 vPos;"
-"attribute vec2 vUv;"
-"attribute vec4 vCol;"
+"in vec2 vPos;"
+"in vec2 vUv;"
+"in vec4 vCol;"
 
-"varying vec2 vFragUv;"
-"varying vec4 vFragCol;"
+"out vec2 vFragUv;"
+"out vec4 vFragCol;"
 
 "void main()"
 "{"
@@ -19,14 +20,16 @@ static const char* vertShader_src =
 "}";
 
 static const char* fragShader_src =
+"#version 300 es\n"
 "precision mediump float;"
-"varying vec2 vFragUv;"
-"varying vec4 vFragCol;"
+"in vec2 vFragUv;"
+"in vec4 vFragCol;"
+"out vec4 vFinalFragCol;"
 
 "uniform sampler2D sTexture;"
 
 "void main() {"
-"   gl_FragColor = /*texture(sTexture, vFragUv).rgba * */vFragCol;"
+"   vFinalFragCol = /*texture(sTexture, vFragUv).rgba * */vFragCol;"
 "}";
 
 CRenderGuiGlsl::~CRenderGuiGlsl()

@@ -9,6 +9,8 @@
 class CResource
 {
 public:
+    CResource(CResource&&) = default;
+
     /**
      * @brief Loads a copy of the resource in memory or returns an existing pointer
      *

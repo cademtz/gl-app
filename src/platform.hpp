@@ -1,43 +1,74 @@
 /**
  * @file platform.hpp
- * @brief Includes all features to interact with the platform
+ * @brief Define functions to interact with the platform
  *
  */
 
 #pragma once
-#ifdef __EMSCRIPTEN__
-#   include <emscripten.h>
-#   define GL_GLEXT_PROTOTYPES
-#   define EGL_EGLEXT_PROTOTYPES
-#else
-#   include <glad/gl.h>
-#endif
-
-#include <GLFW/glfw3.h>
 
 #define PLATFORM_WARNING(Msg) Platform::Warning(Msg, __FILE__, __LINE__)
 #define PLATFORM_ERROR(Msg) Platform::Error(Msg, __FILE__, __LINE__)
 
-namespace Platform {
+namespace Platform
+{
+    using RepeatTaskCallback = bool(*)();
+
     void Warning(const char* Msg, const char* File = 0, int Line = -1);
     void Error(const char* Msg, const char* File = 0, int Line = -1);
 
     /**
+     * @brief Set the return value of @ref ShouldClose to `true`
+     */
+    void SetShouldClose();
+
+    /**
+     * @return `true`, if the app should close gracefully
+     */
+    bool ShouldClose();
+
+    /**
      * @brief Prepare the application to run on its current platform.
-     * This means initializing any necessary APIs, windows, input callbacks, and more.
+     * Initialize any necessary APIs, windows, input callbacks, and more.
      */
     void Setup();
 
     /**
-     * @brief Perform necessary cleanup, if any, before the application exits.
+     * @brief Perform necessary cleanup (if any) before the application exits.
      */
     void Cleanup();
 
     /**
-     * @brief Repeat the application logic forever.
-     * Manage threading between calls if necessary.
-     *
-     * @param function Logic to be repeated
+     * @brief Exit the application gracefully
      */
-    void Loop(void(*function)());
+    void Exit();
+
+    /**
+     * @brief Run all tasks once, removing any finished ones.
+     *  Tasks are provided by @ref AddRepeatingTask
+     * 
+     * @return `false`, if there are no tasks
+     * 
+     */
+    bool RunTasksOnce();
+
+    /**
+     * @brief Block execution by running @ref RunTasksOnce until no tasks remain,
+     *  or until @ref ShouldClose returns false.
+     */
+    void RunTasksForever();
+
+    /**
+     * @brief Add a task to be executed repeatedly by @ref RunTasksforever
+     *
+     * @param task A function that performs operations without any waiting,
+     *  and returns `true` if it should be ran again.
+     *  (Render a frame, read/write pending IO in a non-blocking manner, update loading progress, ...)
+     *
+     */
+    void AddRepeatingTask(RepeatTaskCallback task);
+
+    /**
+     * @brief Get the size of the main window's render buffer in pixels
+     */
+    void GetFrameBufferSize(int* out_width, int* out_height);
 }
