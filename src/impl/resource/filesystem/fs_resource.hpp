@@ -14,7 +14,7 @@ public:
         delete[] m_data;
     }
 
-    const char* Data() const override { return m_data; }
+    const int8_t* Data() const override { return (const int8_t*)m_data; }
     size_t Length() const override { return m_len; } 
 
 private:

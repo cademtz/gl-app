@@ -5,13 +5,14 @@
  */
 
 #pragma once
+#include <functional>
 
 #define PLATFORM_WARNING(Msg) Platform::Warning(Msg, __FILE__, __LINE__)
 #define PLATFORM_ERROR(Msg) Platform::Error(Msg, __FILE__, __LINE__)
 
 namespace Platform
 {
-    using RepeatTaskCallback = bool(*)();
+    using RepeatTaskCallback = std::function<bool()>;
 
     void Warning(const char* Msg, const char* File = 0, int Line = -1);
     void Error(const char* Msg, const char* File = 0, int Line = -1);
@@ -36,6 +37,16 @@ namespace Platform
      * @brief Perform necessary cleanup (if any) before the application exits.
      */
     void Cleanup();
+
+    /**
+    * @brief Called by application before rendering
+    */
+    void PreRender();
+
+    /**
+    * @brief Called by application after rendering
+    */
+    void PostRender();
 
     /**
      * @brief Exit the application gracefully

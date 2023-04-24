@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <memory>
+#include <cstdint>
 #include <unordered_map>
 
 /**
@@ -9,20 +10,33 @@
 class CResource
 {
 public:
+    using Ptr = std::shared_ptr<CResource>;
+    
     CResource(CResource&&) = default;
 
     /**
-     * @brief Loads a copy of the resource in memory or returns an existing pointer
-     *
-     * @param Name A relative URL identifying the resource to load
-     * @return A reuseable resource pointer, or `nullptr` if the resource could not be loaded
+     * @brief Loads a resource asynchronously
      */
-    static const std::shared_ptr<CResource> Load(const std::string& Name);
+    static void Load(const std::string& url);
 
     /**
-     * @return Array of bytes contained in the resource
+     * @brief Loads a resource synchronously.
+     * This will pause single-threaded applications until completion.
+     * @return `nullptr` if the resource could not be loaded
      */
-    virtual const char* Data() const = 0;
+    static const std::shared_ptr<CResource> LoadSynchronous(const std::string& url);
+
+    /**
+     * @return Array of signed bytes contained in the resource
+     */
+    virtual const int8_t* Data() const = 0;
+
+    /**
+     * @return Array of unsigned bytes contained in the resource
+     */
+    const uint8_t* UData() const {
+        return reinterpret_cast<const unsigned char*>(Data());
+    }
 
     /**
      * @return Length of the byte array returned by Data()
@@ -32,13 +46,19 @@ public:
 protected:
     CResource() {}
 
+    static std::shared_ptr<CResource> FindExisting(const std::string& url);
+
     /**
      * @brief Load a copy of the resource in memory
-     * 
-     * @param Path A relative URL identifying the resource to load
-     * @return A reusable resource pointer, or `nullptr` if the resource could not be loaded
+     * @return `nullptr` if the resource could not be loaded
      */
     static std::shared_ptr<CResource> Load_Impl(const std::string& Path);
+
+    /**
+     * @brief Load a copy of the resource in memory
+     * @return `nullptr` if the resource could not be loaded
+     */
+    static std::shared_ptr<CResource> LoadSynchronous_Impl(const std::string& Path);
 
     static std::unordered_map<std::string, std::shared_ptr<CResource>> loadedResMap;
 

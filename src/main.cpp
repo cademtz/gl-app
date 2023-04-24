@@ -8,13 +8,6 @@ extern "C" int main(int argc, char** argv)
 
     App::OnSetup();
 
-    Platform::AddRepeatingTask(
-        [] {
-            App::Loop();
-            return true;
-        }
-    );
-    
     Platform::RunTasksForever();
 
     Platform::Exit();

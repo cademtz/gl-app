@@ -37,6 +37,6 @@ std::shared_ptr<CFileSystemResource> CFileSystemResource::Load(const std::string
 }
 
 
-std::shared_ptr<CResource> CResource::Load_Impl(const std::string& Path) {
+std::shared_ptr<CResource> CResource::LoadSynchronous_Impl(const std::string& Path) {
     return CFileSystemResource::Load(Path);
 }

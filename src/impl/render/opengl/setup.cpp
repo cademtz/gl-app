@@ -7,7 +7,11 @@
 #include <app.hpp>
 #include <iostream>
 #include "opengl.hpp"
-#include <render/glsl/renderguiglsl.hpp>
+#include "renderguiglsl.hpp"
+
+#if _IMPL_WINDOW == _IMPL_WINDOW_GLFW
+    #include <impl/window/glfw/glfw.hpp>
+#endif
 
 static void load_opengl()
 {

@@ -1,5 +1,5 @@
 #pragma once
-#include <impl/render/opengl/opengl.hpp>
+#include "opengl.hpp"
 #include "shaderglsl.hpp"
 
 class CProgramGlsl

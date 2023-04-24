@@ -59,6 +59,14 @@ namespace Platform {
     void GetFrameBufferSize(int* w, int* h) {
         glfwGetFramebufferSize(window, w, h);
     }
+
+    void PreRender() {
+
+    }
+
+    void PostRender() {
+        glfwSwapBuffers(window);
+    }
 }
 
 static void error_callback(int error, const char* description) {

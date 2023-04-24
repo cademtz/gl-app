@@ -6,7 +6,5 @@
 #include "default_includes.hpp"
 #endif
 
-
-#if _IMPL_WINDOW == _IMPL_WINDOW_GLFW
-#include <impl/window/glfw/glfw.hpp>
-#endif
+#define _IMPL_GLSL_VERSION "300 es"
+#define _IMPL_GLSL_VERSION_HEADER "#version " _IMPL_GLSL_VERSION "\n"

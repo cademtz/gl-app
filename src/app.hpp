@@ -5,14 +5,20 @@
 
 namespace App
 {
+    /**
+     * @brief Called before running the app
+     */
     void OnSetup();
+    
+    /**
+     * @brief Called after running the app
+     */
     void OnCleanup();
 
     /**
-     * @brief Perform all the app's logic in one call, without waiting.
-     *  Handle pending inputs, render the next frame, and more.
+     * @brief Render to the current frame buffer
      */
-    void Loop();
+    void Render();
 
     void SetGuiRenderer(std::unique_ptr<CRenderGui>&& Render);
     const std::unique_ptr<CRenderGui>& GetGuiRenderer();

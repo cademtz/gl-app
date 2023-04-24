@@ -36,7 +36,7 @@ void PrimitiveBuilder2d::Rectangle(float X, float Y, float Width, float Height)
         point = t * point;
 
         m_geom.vertices.emplace_back(Vertex2d{
-            point[0], point[1], 0,0,
+            point[0], point[1], m_default_uv[0], m_default_uv[1],
             m_rgba[0], m_rgba[1], m_rgba[2], m_rgba[3]
         });
     }
@@ -62,7 +62,7 @@ void PrimitiveBuilder2d::Ellipse(float X, float Y, float Width, float Height)
         glm::vec3 point = { (cosf(angle) + 1) / 2, (sinf(angle) + 1) / 2, 1 };
         point = t * point;
         m_geom.vertices.emplace_back(Vertex2d{
-            point[0], point[1], 0,0,
+            point[0], point[1], m_default_uv[0], m_default_uv[1],
             m_rgba[0], m_rgba[1], m_rgba[2], m_rgba[3]
         });
     }

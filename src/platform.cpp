@@ -40,18 +40,16 @@ bool Platform::RunTasksOnce()
         Platform::RepeatTaskCallback callback = *it;
         bool result = callback();
         if (!result)
-        {
             it = repeat_tasks.erase(it);
-            continue;
-        }
-
-        ++it;
+        else
+            ++it;
     }
 
     return !repeat_tasks.empty();
 }
 
 void Platform::Exit() {
+    SetShouldClose();
     App::OnCleanup();
     Cleanup();
 }
