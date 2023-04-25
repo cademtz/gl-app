@@ -13,6 +13,7 @@ public:
     using Ptr = std::shared_ptr<CResource>;
     
     CResource(CResource&&) = default;
+    virtual ~CResource() {}
 
     /**
      * @brief Loads a resource asynchronously

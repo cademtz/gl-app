@@ -8,7 +8,7 @@ static std::string ResPathHack()
     std::string path = __FILE__;
     size_t end = path.rfind("\\src\\");
     if (end == std::string::npos)
-        end = path.rfind("//src//");
+        end = path.rfind("/src/");
     path = path.substr(0, end + 1) + "resources/";
     return path;
 }
@@ -16,7 +16,8 @@ static std::string _resPathPrefix = ResPathHack();
 
 std::shared_ptr<CFileSystemResource> CFileSystemResource::Load(const std::string& Path)
 {
-    std::fstream file(Path, std::ios::in | std::ios::binary);
+    std::string fs_path = _resPathPrefix + Path;
+    std::fstream file(fs_path, std::ios::in | std::ios::binary);
     if (!file.is_open())
         return nullptr;
 
@@ -31,9 +32,7 @@ std::shared_ptr<CFileSystemResource> CFileSystemResource::Load(const std::string
     file.seekg(0, std::ios::beg);
     file.read(data, len);
 
-    CFileSystemResource res(data, len);
-
-    return std::make_shared<CFileSystemResource>(std::move(res));
+    return std::make_shared<CFileSystemResource>(data, len);
 }
 
 

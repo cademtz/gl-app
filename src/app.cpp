@@ -19,9 +19,9 @@ static std::unique_ptr<CRenderGui> guiRenderer = nullptr;
 static const Geometry2d base_geom = {
     // Vertices
     { //  x y       u v     r g b a
-        { 100,100,    0,0,  1,1,1,1 },
-        { 200,100,    1,0,  1,1,1,1 },
-        { 200,200,    1,1,  1,1,1,1 },
+        { 100,100,    0,0,  1,0,0,1 },
+        { 200,100,    1,0,  0,1,0,1 },
+        { 200,200,    1,1,  0,0,1,1 },
         { 100,200,    0,1,  1,1,1,1 },
     },
     // Indices
@@ -51,7 +51,7 @@ void App::OnSetup() {
             ++count;
             std::cout << "Ran " << count << " times" << std::endl;
 
-            CResource::Ptr ttf_res = CResource::LoadSynchronous("Open_Sans/static/OpenSans/OpenSans-Regular.ttf");
+            CResource::Ptr ttf_res = CResource::LoadSynchronous("Open_Sans/static/OpenSans-Regular.ttf");
             if (!ttf_res)
                 assert(0 && "Failed to load TTF resource");
             std::optional<CTrueType> ttf = CTrueType::FromTrueType(ttf_res);
@@ -100,10 +100,17 @@ void App::OnSetup() {
             ttf->MakeGlyphBitmap(
                 glyph,
                 scale, scale, 0, 0,
-                test->GetData(), test->GetWidth(), test->GetHeight(), 0
+                test->GetData(), test->GetWidth(), test->GetHeight(), test->GetRowStride()
             );
 
             std::cout << "Rendered the glyph" << std::endl;
+
+            test = test->Convert(TextureFormat::RGBA_8_32,
+                [](auto input, auto& output) {
+                    output[0] = output[1] = output[2] = 0xFF;
+                    output[3] = input[0];
+                }
+            );
         
             default_tex = CTexture::Create(test);
             return false;
@@ -145,10 +152,10 @@ void App::Render()
 
     auto duration = std::chrono::duration_cast<duration_type>(time_now - time_begin);
     double duration_seconds = ((double)duration.count() / duration_type::period::den) * duration_type::period::num;
-    duration_seconds = 0;
+    //duration_seconds = 0;
 
     shapes.SetAlign(PrimitiveBuilder2d::Align_Center);
-    shapes.SetRotation(duration_seconds);
+    shapes.SetRotation(duration_seconds * 3);
     shapes.SetColor(0, 1, 1);
     shapes.Rectangle(400, 400, 200, 50);
     shapes.SetColor(1, 0, 0);

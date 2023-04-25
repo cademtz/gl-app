@@ -8,6 +8,7 @@ class CFileSystemResource : public CResource {
 public:
     static std::shared_ptr<CFileSystemResource> Load(const std::string& Path);
 
+    CFileSystemResource(char* Data, size_t Length) : m_data(Data), m_len(Length) {}
     CFileSystemResource(CFileSystemResource&&) = default;
 
     ~CFileSystemResource() {
@@ -18,8 +19,6 @@ public:
     size_t Length() const override { return m_len; } 
 
 private:
-    CFileSystemResource(char* Data, size_t Length) : m_data(Data), m_len(Length) {}
-
     char* m_data;
     size_t m_len;
 };

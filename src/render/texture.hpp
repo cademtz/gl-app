@@ -1,5 +1,5 @@
 #pragma once
-
+#include <array>
 #include <memory>
 #include <cstdint>
 
@@ -43,21 +43,43 @@ private:
 class CClientTexture : public CTextureInfo {
 public:
     using Ptr = std::shared_ptr<CClientTexture>;
+    using ExpandOp = void(std::array<uint8_t, 4> input, std::array<uint8_t, 4>& output);
+
+    CClientTexture(CClientTexture&& other)
+        : CTextureInfo(other), m_data(other.m_data) {
+        other.m_data = nullptr;
+    }
 
     ~CClientTexture() {
-        delete[] m_data;
+        if (m_data)
+            delete[] m_data;
     }
 
     const uint8_t* GetData() const { return m_data; }
     uint8_t* GetData() { return m_data; }
+    const uint32_t GetPixelOffset(uint32_t x, uint32_t y) const {
+        return y * GetRowStride() + x * GetPixelStride();
+    }
+    const uint8_t* GetPixel(uint32_t x, uint32_t y) const {
+        return m_data + GetPixelOffset(x, y);
+    }
+    uint8_t* GetPixel(uint32_t x, uint32_t y) {
+        return m_data + GetPixelOffset(x, y);
+    }
+    
+    /**
+     * @brief Creates an new texture by converting each pixel's channels to a new format
+     */
+    Ptr Convert(TextureFormat new_format, ExpandOp operation);
 
     static Ptr Create(CTextureInfo&& info);
 
 protected:
     CClientTexture(CTextureInfo&& info, uint8_t* data) : CTextureInfo(info), m_data(data) {}
+    CClientTexture(const CClientTexture&) = delete;
     
 private:
-    uint8_t* const m_data;
+    uint8_t* m_data;
 };
 
 /**
