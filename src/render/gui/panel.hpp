@@ -1,0 +1,8 @@
+namespace gui {
+
+
+class Panel {
+
+}
+
+}

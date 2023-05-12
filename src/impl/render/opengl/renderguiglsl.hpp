@@ -1,29 +1,31 @@
 #pragma once
-#include <render/rendergui.hpp>
+#include <render/gui/rendergui.hpp>
 #include "opengl.hpp"
 #include "programglsl.hpp"
 #include "render/texture.hpp"
 
-class CRenderGuiGlsl : public CRenderGui
+namespace gui { class DrawList; }
+
+class RenderGuiGlsl : public gui::RenderGui
 {
 public:
-    CRenderGuiGlsl() : CRenderGui("CRenderGuiGlsl") { }
-    ~CRenderGuiGlsl();
+    RenderGuiGlsl() : RenderGui("RenderGuiGlsl") { }
+    ~RenderGuiGlsl();
 
     bool Init() override;
-    void UploadGeometry(const Geometry2d& Geometry) override;
+    void UploadDrawData(const gui::DrawList& list) override;
     void Render() override;
 
 private:
+    Texture::Ptr m_default_texture = nullptr;
+    const gui::DrawList* m_drawlist;
+
     CProgramGlsl m_glProgram;
-    CTexture::Ptr m_default_texture = nullptr;
-    CTexture::Ptr m_current_texture = nullptr;
     GLuint m_glVertexBuffer;
     GLuint m_glIndexBuffer;
-    GLuint m_uploadedIndices = 0;
 
     GLuint m_mPixelToNormalized;
-    GLuint m_mTexelToNormalized;
+    GLuint m_vTexelToNormalized;
     GLuint m_vPos;
     GLuint m_vUv;
     GLuint m_vCol;

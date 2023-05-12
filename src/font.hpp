@@ -20,6 +20,8 @@ typedef uint32_t codepoint_t;
 
 struct UnicodeRange {
     codepoint_t begin, end;
+    
+    bool Contains(codepoint_t cp) const { return cp >= begin && cp <= end; }
 };
 
 namespace UnicodeBlocks {
@@ -32,10 +34,9 @@ namespace UnicodeBlocks {
 /**
  * @brief Parameters to load and rasterize a font
  */
-struct CFontBakeConfig
-{   
-    CFontBakeConfig(std::string&& url, float height, UnicodeRange range = UnicodeBlocks::LATIN_EXTENDED_A)
-    : url(url), height(height) {
+struct FontBakeConfig {
+    FontBakeConfig(std::string&& url, float height_px, uint8_t oversample = 1, UnicodeRange range = UnicodeBlocks::BASIC_LATIN)
+    : url(url), height_px(height_px), oversample(oversample) {
         ranges.push_back(range);
     }
 
@@ -44,8 +45,8 @@ struct CFontBakeConfig
      * @param begin 
      */
     template <class T>
-    CFontBakeConfig(std::string&& url, float height, T begin, T end)
-    : url(url), height(height) {
+    FontBakeConfig(std::string&& url, float height_px, uint8_t oversample, T begin, T end)
+    : url(url), height_px(height_px), oversample(oversample) {
         ranges.insert(ranges.cbegin(), begin, end);
     }
 
@@ -56,7 +57,9 @@ struct CFontBakeConfig
     /**
      * @return Desired height, in pixels
      */
-    float height;
+    float height_px;
+
+    uint8_t oversample;
 
     std::vector<UnicodeRange> ranges;
 };
@@ -65,7 +68,7 @@ struct CFontBakeConfig
  * @brief A font's line size and placement.
  * The Y axis is relative to the baseline, such that +y is above and -y is below.
  */
-struct CFontLineMetrics {
+struct FontLineMetrics {
     /**
      * @brief Top of a line
      */
@@ -78,6 +81,8 @@ struct CFontLineMetrics {
      * @brief Additional vertical space between the bottom and top of two lines
      */
     int32_t gap;
+
+    float GetHeight(float scale = 1.f) const { return (line_y1 - line_y0) * scale; }
 };
 
 /**
@@ -85,47 +90,32 @@ struct CFontLineMetrics {
  * The X axis is relative to the cursor, such that +x extends right and -x extends left.
  * The Y axis is relative to the baseline, such that +y is above and -y is below.
  */
-struct CFontGlyphMetrics
-{
+struct FontGlyphMetrics {
     /**
      * @brief Bounding box of all visible parts of the glyph.
+     * The first coordinate is top-left
      */
     int32_t x0, y0, x1, y1;
     /**
      * @brief Horizontal offset to move the cursor to its next position after this glyph
      */
     int32_t next_x_offset;
-};
-
-/**
- * @brief Pixel measurements to place and render a rasterized glyph
- */
-struct CFontBakedGlyph {
-    /**
-     * @brief Coordinates of the baked glyph inside the bitmap.
-     * These values may be zero for missing glyphs or whitespace codepoints
-     */
-    uint16_t bmp_x0, bmp_y0, bmp_x1, bmp_y1;
-    /**
-     * @brief Horizontal offset of the next glyph, relative to the cursor
-     */
-    float next_x_offset;
-    /**
-     * @brief Placement of the bitmap box's top-left corner, relative to the cursor
-     */
-    float place_x_offset, place_y_offset;
+    
+    float GetWidth(float scale = 1.f) const { return (x1 - x0) * scale; }
+    float GetHeight(float scale = 1.f) const { return (y1 - y0) * scale; }
+    bool IsEmpty() const { return x0 == x1 || y0 == y1; }
 };
 
 /**
  * @brief Extract information from a truetype font.
- * This is essentially a wrapper for stb_truetype.
+ * This is essentially a wrapper for `stb_truetype.h`.
  */
-class CTrueType
+class TrueType
 {
 public:
-    using Ptr = std::shared_ptr<CTrueType>;
+    using Ptr = std::shared_ptr<TrueType>;
     
-    static std::optional<CTrueType> FromTrueType(std::shared_ptr<CResource> truetype);
+    static std::optional<TrueType> FromTrueType(std::shared_ptr<CResource> truetype);
 
     /**
      * @return ID of the corresponding glyph, or `0` if not found
@@ -143,13 +133,13 @@ public:
      * @param out_metrics Will be updated with the glyph's metrics
      * @return `false` if the glyph ID was not found
      */
-    bool GetGlyphMetrics(uint32_t glyph, CFontGlyphMetrics* out_metrics) const;
+    bool GetGlyphMetrics(uint32_t glyph, FontGlyphMetrics* out_metrics) const;
 
     /**
      * @brief Get the vertical metrics of a line
      * @param metrics Will be updated with line metrics
      */
-    void GetLineMetrics(CFontLineMetrics* out_metrics) const;
+    void GetLineMetrics(FontLineMetrics* out_metrics) const;
 
     bool IsGlyphEmpty(uint32_t glyph) const;
 
@@ -192,27 +182,25 @@ public:
     void GetTextSize(const wchar_t* text, float scale_factor, uint32_t* out_width, uint32_t* out_height);
 
 private:
-    CTrueType(std::shared_ptr<CResource> truetype, stbtt_fontinfo info)
+    TrueType(std::shared_ptr<CResource> truetype, stbtt_fontinfo info)
         : m_truetype(truetype), m_info(info) {}
 
     const std::shared_ptr<CResource> m_truetype;
     const stbtt_fontinfo m_info;
 };
 
-struct CFontGlyphInfo
-{
+struct FontGlyphInfo {
     /**
      * @brief Font-specific glyph ID
      */
     uint32_t id;
-    CFontGlyphMetrics metrics;
+    FontGlyphMetrics metrics;
 };
 
 /**
  * @brief Hash two glyphs
  */
-class CFontGlyphPair : public std::pair<uint32_t, uint32_t>
-{
+class FontGlyphPair : public std::pair<uint32_t, uint32_t> {
 public:
     // Forward constructor
     using std::pair<uint32_t, uint32_t>::pair;
@@ -227,33 +215,40 @@ public:
 /**
  * @brief Map a font's codepoints to their glyphs, and two glyphs to the kerning offset between them
  */
-class CFontCodePointMap
-{
+class FontCodepointMap {
 public:
-    CFontCodePointMap() {}
+    FontCodepointMap() {}
 
     /**
      * @brief Calculate text size from the first pixel of the first letter to the last pixel of the last letter
      */
     void GetTextSize(const wchar_t* text, uint32_t* out_width, uint32_t* out_height) const;
 
-    const CFontGlyphInfo* FindGlyph(uint32_t codepoint) const {
+    /**
+     * @return @ref FontGlyphInfo, or `nullptr` if the glyph is not mapped
+     */
+    const FontGlyphInfo* FindGlyph(codepoint_t codepoint) const {
         auto iter = m_glyph_map.find(codepoint);
         if (iter == m_glyph_map.cend())
             return nullptr;
         return &iter->second;
     }
 
-    void AddCodepoint(const CTrueType& truetype, uint32_t codepoint);
-    void AddRange(const CTrueType& truetype, uint32_t first_codepoint, uint32_t last_codepoint);
+    /**
+     * @return The kerning between two glyphs, or `nullptr` if none was found
+     */
+    const int32_t* FindKerning(uint32_t first_glyph, uint32_t second_glyph) const;
+
+    void AddCodepoint(const TrueType& truetype, codepoint_t codepoint);
+    void AddRange(const TrueType& truetype, codepoint_t first_codepoint, codepoint_t last_codepoint);
 
 private:
     struct GlyphPairHasher {
-        uint32_t operator()(const CFontGlyphPair& pair) const {
+        uint32_t operator()(const FontGlyphPair& pair) const {
             return pair.Hash();
         }
     };
 
-    std::unordered_map<CFontGlyphPair, int32_t, GlyphPairHasher> m_kerning_map;
-    std::unordered_map<uint32_t, CFontGlyphInfo> m_glyph_map;
+    std::unordered_map<FontGlyphPair, int32_t, GlyphPairHasher> m_kerning_map;
+    std::unordered_map<uint32_t, FontGlyphInfo> m_glyph_map;
 };

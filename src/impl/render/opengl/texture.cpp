@@ -1,7 +1,7 @@
 #include "texture.hpp"
 #include "render/texture.hpp"
 
-CTexture::Ptr CTexture::Create(CTextureInfo&& info, const void* data) {
+Texture::Ptr Texture::Create(TextureInfo&& info, const void* data) {
     int gl_format;
     switch (info.GetFormat()) {
     case TextureFormat::RGB_8_24: gl_format = GL_RGB; break;

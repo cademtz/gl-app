@@ -1,6 +1,7 @@
 # Provide platform-specific implementations of our own classes
 
 target_sources(Glap PUBLIC
+    demostuff.cpp
     platform.cpp
     app.cpp
     main.cpp

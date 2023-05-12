@@ -26,7 +26,7 @@ define_impl_list("PLATFORM" OPTIONS "DEFAULT_" DEFAULT "DEFAULT_" DOCSTRING "App
 define_selected_impl_list()
 
 #######################################
-# Configure with chosen implementations
+# Handle each chosen implementation
 #######################################
 
 if (IMPL_WINDOW STREQUAL "GLFW")

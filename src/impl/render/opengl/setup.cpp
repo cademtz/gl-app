@@ -42,7 +42,7 @@ void _setup_render_api()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    App::SetGuiRenderer(std::make_unique<CRenderGuiGlsl>());
+    App::SetGuiRenderer(std::make_unique<RenderGuiGlsl>());
 }
 
 void _cleanup_render_api()

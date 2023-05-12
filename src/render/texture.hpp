@@ -2,6 +2,7 @@
 #include <array>
 #include <memory>
 #include <cstdint>
+#include <functional>
 
 enum class TextureFormat : char {
     /**
@@ -18,9 +19,9 @@ enum class TextureFormat : char {
     A_8_8,
 };
 
-class CTextureInfo {
+class TextureInfo {
 public:
-    CTextureInfo(TextureFormat format, uint32_t width, uint32_t height)
+    TextureInfo(TextureFormat format, uint32_t width, uint32_t height)
         : m_format(format), m_width(width), m_height(height) {}
 
     TextureFormat GetFormat() const { return m_format; }
@@ -40,17 +41,18 @@ private:
 /**
  * @brief Texture data on the client
  */
-class CClientTexture : public CTextureInfo {
+class ClientTexture : public TextureInfo {
 public:
-    using Ptr = std::shared_ptr<CClientTexture>;
-    using ExpandOp = void(std::array<uint8_t, 4> input, std::array<uint8_t, 4>& output);
+    using Ptr = std::shared_ptr<ClientTexture>;
+    using ConstPtr = std::shared_ptr<const ClientTexture>;
+    using ExpandOp = std::function<void(std::array<uint8_t, 4> input, std::array<uint8_t, 4>& output)>;
 
-    CClientTexture(CClientTexture&& other)
-        : CTextureInfo(other), m_data(other.m_data) {
+    ClientTexture(ClientTexture&& other)
+        : TextureInfo(other), m_data(other.m_data) {
         other.m_data = nullptr;
     }
 
-    ~CClientTexture() {
+    ~ClientTexture() {
         if (m_data)
             delete[] m_data;
     }
@@ -68,15 +70,21 @@ public:
     }
     
     /**
-     * @brief Creates an new texture by converting each pixel's channels to a new format
+     * @brief Write new data to a specified location in the texture
+     * @return `true` if the new data was compatible and written
+     */
+    bool Write(ClientTexture::ConstPtr new_data, uint32_t x, uint32_t y, uint32_t w = ~(uint32_t)0, uint32_t h = ~(uint32_t)0);
+    
+    /**
+     * @brief Create an new texture by converting each pixel's channels to a new format
      */
     Ptr Convert(TextureFormat new_format, ExpandOp operation);
 
-    static Ptr Create(CTextureInfo&& info);
+    static Ptr Create(TextureInfo&& info);
 
 protected:
-    CClientTexture(CTextureInfo&& info, uint8_t* data) : CTextureInfo(info), m_data(data) {}
-    CClientTexture(const CClientTexture&) = delete;
+    ClientTexture(TextureInfo&& info, uint8_t* data) : TextureInfo(info), m_data(data) {}
+    ClientTexture(const ClientTexture&) = delete;
     
 private:
     uint8_t* m_data;
@@ -86,12 +94,12 @@ private:
  * @brief Handle to a texture on the rendering backend.
  * The texture data may be stored on a GPU, and thus cannot be directly read or written.
  */
-class CTexture : public CTextureInfo
+class Texture : public TextureInfo
 {
 public:
-    using Ptr = std::shared_ptr<CTexture>;
+    using Ptr = std::shared_ptr<Texture>;
 
-    virtual ~CTexture() {}
+    virtual ~Texture() {}
 
     /**
      * @brief Write new data to a specified portion of the texture
@@ -102,12 +110,12 @@ public:
      * @brief Create a new texture. (implementation-defined)
      * @param data Initial data for the texture. If `data = nullptr`, the initial pixels are undefined
      */
-    static Ptr Create(CTextureInfo&& info, const void* data = nullptr);
+    static Ptr Create(TextureInfo&& info, const void* data = nullptr);
 
-    static Ptr Create(CClientTexture::Ptr texture) {
-        return Create(CTextureInfo(*texture), texture->GetData());
+    static Ptr Create(ClientTexture::Ptr texture) {
+        return Create(TextureInfo(*texture), texture->GetData());
     }
 
 protected:
-    CTexture(CTextureInfo&& info) : CTextureInfo(info) {}
+    Texture(TextureInfo&& info) : TextureInfo(info) {}
 };

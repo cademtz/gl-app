@@ -5,39 +5,41 @@
 #include <iostream>
 #include <cmath>
 
-std::optional<CTrueType> CTrueType::FromTrueType(std::shared_ptr<CResource> truetype) {
+std::optional<TrueType> TrueType::FromTrueType(std::shared_ptr<CResource> truetype) {
     stbtt_fontinfo info;
     if (!stbtt_InitFont(&info, truetype->UData(), 0))
         return std::nullopt;
-    return CTrueType(truetype, info);
+    return TrueType(truetype, info);
 }
 
-uint32_t CTrueType::FindGlyphId(uint32_t codepoint) const {
+uint32_t TrueType::FindGlyphId(uint32_t codepoint) const {
     return (uint32_t)stbtt_FindGlyphIndex(&m_info, (int)codepoint);
 }
 
-int32_t CTrueType::GetGlyphKerning(uint32_t glyph1, uint32_t glyph2) const {
+int32_t TrueType::GetGlyphKerning(uint32_t glyph1, uint32_t glyph2) const {
     return (int32_t)stbtt_GetGlyphKernAdvance(&m_info, (int)glyph1, (int)glyph2);
 }
 
-bool CTrueType::GetGlyphMetrics(uint32_t glyph, CFontGlyphMetrics *metrics) const
+bool TrueType::GetGlyphMetrics(uint32_t glyph, FontGlyphMetrics *metrics) const
 {
     int junk;
-    if (!stbtt_GetGlyphBox(&m_info, glyph, &metrics->x0, &metrics->y0, &metrics->x1, &metrics->y1))
-        return false;
+    if (!stbtt_GetGlyphBox(&m_info, glyph, &metrics->x0, &metrics->y0, &metrics->x1, &metrics->y1)) {
+        //return false;
+        *metrics = { 0 };
+    }
     stbtt_GetGlyphHMetrics(&m_info, glyph, &metrics->next_x_offset, &junk);
     return true;
 }
 
-void CTrueType::GetLineMetrics(CFontLineMetrics* metrics) const {
+void TrueType::GetLineMetrics(FontLineMetrics* metrics) const {
     stbtt_GetFontVMetrics(&m_info, &metrics->line_y0, &metrics->line_y1, &metrics->gap);
 }
 
-bool CTrueType::IsGlyphEmpty(uint32_t glyph) const {
+bool TrueType::IsGlyphEmpty(uint32_t glyph) const {
     return stbtt_IsGlyphEmpty(&m_info, glyph);
 }
 
-bool CTrueType::GetGlyphBitmapBox(
+bool TrueType::GetGlyphBitmapBox(
     uint32_t glyph,
     float scale_x, float scale_y,
     float shift_x, float shift_y,
@@ -48,7 +50,7 @@ bool CTrueType::GetGlyphBitmapBox(
     return true;
 }
 
-bool CTrueType::MakeGlyphBitmap(
+bool TrueType::MakeGlyphBitmap(
     uint32_t glyph,
     float scale_x, float scale_y,
     float shift_x, float shift_y,
@@ -60,37 +62,50 @@ bool CTrueType::MakeGlyphBitmap(
     return true;
 }
 
-float CTrueType::ScaleForPixelHeight(float height) const {
-    CFontLineMetrics metrics;
+float TrueType::ScaleForPixelHeight(float height) const {
+    FontLineMetrics metrics;
     GetLineMetrics(&metrics);
     return height / (metrics.line_y0 - metrics.line_y1);
 }
 
-void CFontCodePointMap::AddCodepoint(const CTrueType &truetype, uint32_t codepoint)
-{
-    CFontGlyphInfo glyph;
+const int32_t* FontCodepointMap::FindKerning(uint32_t first_glyph, uint32_t second_glyph) const {
+    auto it = m_kerning_map.find(FontGlyphPair(first_glyph, second_glyph));
+    if (it == m_kerning_map.cend())
+        return nullptr;
+    return &it->second;
+}
+
+void FontCodepointMap::AddCodepoint(const TrueType &truetype, codepoint_t codepoint) {
+    FontGlyphInfo glyph = { 0 };
     glyph.id = truetype.FindGlyphId(codepoint);
-    if (glyph.id == 0)
-    {
+    if (glyph.id == 0) {
         std::cout << "Invalid glyph" << std::endl;
         return;
     }
-    if (truetype.IsGlyphEmpty(glyph.id))
-        std::cout << "Huh, this valid glyph is actually empty!" << std::endl;
     
     truetype.GetGlyphMetrics(glyph.id, &glyph.metrics);
-    for (auto it = m_glyph_map.cbegin(); it != m_glyph_map.cend(); ++it) {
-        int32_t kerning = truetype.GetGlyphKerning(glyph.id, it->first);
-        if (kerning != 0)
-            m_kerning_map.insert({CFontGlyphPair(glyph.id, it->first), kerning});
+    if (truetype.IsGlyphEmpty(glyph.id)) {
+        std::cout << "Huh, this valid glyph is actually empty!" << std::endl;
+        //std::cout << "advance = " << glyph->metrics.next_x_offset * m_scale << std::endl;
+    } else {
+        
     }
 
-    m_glyph_map.insert({glyph.id, glyph});
+    for (auto it = m_glyph_map.cbegin(); it != m_glyph_map.cend(); ++it) {
+        uint32_t left = glyph.id, right = it->first;
+        for (uint8_t i = 0; i < 2; ++i) {
+            int32_t kerning = truetype.GetGlyphKerning(left, right);
+            if (kerning != 0)
+                m_kerning_map.insert({FontGlyphPair(left, right), kerning});
+            left = it->first, right = glyph.id;
+        }
+    }
+    
+    m_glyph_map.insert({codepoint, std::move(glyph)});
 }
 
-void CFontCodePointMap::AddRange(const CTrueType& truetype, uint32_t first_codepoint, uint32_t last_codepoint)
-{
-    for (size_t i = first_codepoint; i <= last_codepoint; ++i) {
+void FontCodepointMap::AddRange(const TrueType& truetype, codepoint_t first_codepoint, codepoint_t last_codepoint) {
+    for (codepoint_t i = first_codepoint; i <= last_codepoint; ++i) {
         AddCodepoint(truetype, i);
     }
 }

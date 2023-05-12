@@ -8,7 +8,7 @@
 #include <iostream>
 #include <chrono>
 
-uint32_t CRectPacker::AddRect(uint32_t width, uint32_t height)
+uint32_t RectPacker::AddRect(uint32_t width, uint32_t height)
 {
     Rect rect = { 0 };
     rect.x = -1, rect.y = -1;
@@ -19,12 +19,12 @@ uint32_t CRectPacker::AddRect(uint32_t width, uint32_t height)
     return (uint32_t)m_rects.size() - 1;
 }
 
-void CRectPacker::Clear() {
+void RectPacker::Clear() {
     m_is_packed = false;
     m_rects.clear();
 }
 
-bool CRectPacker::Pack()
+bool RectPacker::Pack()
 {
     // Constants
     const float padding_factor = 1.2;

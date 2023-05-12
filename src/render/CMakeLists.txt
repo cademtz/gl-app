@@ -1,6 +1,7 @@
 target_sources(Glap PUBLIC
-    rendergui.cpp
-    geometry.cpp
     texture.cpp
+    atlas.cpp
     bake.cpp
 )
+
+add_subdirectory(gui)
