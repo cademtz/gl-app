@@ -35,9 +35,21 @@ _IMPL_GLSL_VERSION_HEADER
 "       coverage = 1.0;"
 "   final_frag_color = vec4(frag_color);"
 "   final_frag_color[3] *= coverage;"
+//"   final_frag_color = vec4(1.f);" // Debug
 "}";
 
+#include <sstream>
+
 namespace sticks {
+
+static void CheckError() {
+    auto err = glGetError();
+    if (err != 0) {
+        std::stringstream stream;
+        stream << "GL Error code " << err << std::endl;
+        PLATFORM_ERROR(stream.str().c_str());
+    }
+}
 
 class RenderSticksGlsl : public RenderSticks {
 public:
@@ -46,6 +58,7 @@ public:
             PLATFORM_ERROR("Failed to initialize RenderSticksGlsl");
     }
     ~RenderSticksGlsl() {
+        // TODO: Make buffer classes with destructors
         if (m_vertex_buffer)
             glDeleteBuffers(1, &m_vertex_buffer);
         if (m_index_buffer)
@@ -66,6 +79,9 @@ public:
             list.indices.size() * sizeof(list.indices[0]),
             list.indices.data(), GL_STREAM_DRAW
         );
+        
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
     void Render() override {
@@ -80,6 +96,10 @@ public:
         for (const DrawCall& call : m_drawlist->calls) {
             glDrawElements(GL_TRIANGLES, call.index_count, GL_UNSIGNED_INT, (void*)(call.index_offset * sizeof(GLuint)));
         }
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glUseProgram(0);
     }
 
 private:
@@ -111,6 +131,8 @@ private:
         glGenBuffers(1, &m_vertex_buffer);
         glGenBuffers(1, &m_index_buffer);
 
+        CheckError();
+
         glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
         glEnableVertexAttribArray(m_in_pos);
         glEnableVertexAttribArray(m_in_uv);
@@ -118,6 +140,9 @@ private:
         glVertexAttribPointer(m_in_pos, 2, GL_FLOAT, GL_FALSE, sizeof(sticks::Vertex), (void*)0);
         glVertexAttribPointer(m_in_uv, 2, GL_FLOAT, GL_FALSE, sizeof(sticks::Vertex), (void*)(2 * sizeof(float)));
         glVertexAttribPointer(m_in_color, 4, GL_FLOAT, GL_FALSE, sizeof(sticks::Vertex), (void*)(4 * sizeof(float)));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        CheckError();
 
         return true;
     }

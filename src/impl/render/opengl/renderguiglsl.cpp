@@ -98,6 +98,7 @@ bool RenderGuiGlsl::Init() {
     glVertexAttribPointer(m_in_pos, 2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)0);
     glVertexAttribPointer(m_in_uv, 2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)(2 * sizeof(float)));
     glVertexAttribPointer(m_in_color, 4, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)(4 * sizeof(float)));
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     return true;
 }
@@ -114,6 +115,9 @@ void RenderGuiGlsl::UploadDrawData(const gui::DrawList& list) {
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
         list.indices.size() * sizeof(list.indices[0]),
         list.indices.data(), GL_STREAM_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 void RenderGuiGlsl::Render() {
@@ -158,4 +162,7 @@ void RenderGuiGlsl::Render() {
     }
 
     glDisable(GL_SCISSOR_TEST);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glUseProgram(0);
 }

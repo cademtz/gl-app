@@ -11,6 +11,7 @@
 #include "demostuff.hpp"
 #include "render/gui/rendergui.hpp"
 #include "render/sticks/draw.hpp"
+#include "render/sticks/drawlist.hpp"
 #include "render/sticks/rendersticks.hpp"
 #include <chrono>
 #include <string>
@@ -149,17 +150,36 @@ void App::Render()
 
     drawSticks.Clear();
     drawSticks.SetColor(1, 1, 1);
-    /*drawSticks.Segment(
+    drawSticks.Segment(
         sticks::Point{.pos=glm::vec2(0.2, 0.2), .cap=sticks::SegmentCap::CIRCLE, .rgba=glm::vec4(1.f)},
         sticks::Point{.pos=glm::vec2(-0.5, -0.5), .cap=sticks::SegmentCap::CIRCLE, .rgba=glm::vec4(1.f)}
-    );*/
+    );
     
     static std::shared_ptr<gui::RenderGui> guiRenderer = gui::RenderGui::GetInstance();
     guiRenderer->SetScreenSize(width, height);
     guiRenderer->UploadDrawData(draw.GetDrawList());
     guiRenderer->Render();
-    
+
+    sticks::DrawList dlist;
+    dlist.vertices.push_back(sticks::Vertex {
+        0, 0, 0, 0, 1, 1, 1, 1
+    });
+    dlist.vertices.push_back(sticks::Vertex {
+        0, 1, .5f, 0, 1, 0, 0, 1
+    });
+    dlist.vertices.push_back(sticks::Vertex {
+        1, 1, 1, 1, 0, 1, 0, 1
+    });
+
+    dlist.indices.push_back(0);
+    dlist.indices.push_back(1);
+    dlist.indices.push_back(2);
+
+    dlist.calls.push_back(sticks::DrawCall{
+        0, 3, glm::mat3x3(1.f)
+    });
+
     static auto stickRender = sticks::RenderSticks::GetInstance();
-    //stickRender->UploadDrawData(drawSticks.GetDrawList());
-    //stickRender->Render();
+    stickRender->UploadDrawData(dlist);
+    stickRender->Render();
 }
