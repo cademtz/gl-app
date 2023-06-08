@@ -1,87 +1,103 @@
 #include "renderguiglsl.hpp"
-#include "opengl.hpp"
-#include "texture.hpp"
+#include <platform.hpp>
+#include <render/gui/rendergui.hpp>
 #include <render/gui/drawlist.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
+#include "opengl.hpp"
+#include "texture.hpp"
 
 // Debugging
 #include <iostream>
 
-static const char* vertShader_src =
+static const char* VERT_SHADER_SRC =
 _IMPL_GLSL_VERSION_HEADER
-"uniform mat4 mPixelToNormalized;"
-"uniform vec2 vTexelToNormalized;"
-"in vec2 vPos;"
-"in vec2 vUv;"
-"in vec4 vCol;"
-"out vec2 vFragUv;"
-"out vec4 vFragCol;"
-
-"void main()"
-"{"
-"   gl_Position = mPixelToNormalized * vec4(vPos, 0.0, 1.0);"
-"   vFragUv = vTexelToNormalized * vUv;"
-"   vFragCol = vCol;"
-"}";
-
-static const char* fragShader_src =
-_IMPL_GLSL_VERSION_HEADER
-"precision mediump float;"
-"in vec2 vFragUv;"
-"in vec4 vFragCol;"
-"out vec4 vFinalFragCol;"
-
-"uniform sampler2D sTexture;"
+"uniform mat4 pixel_to_normalized;"
+"uniform vec2 texel_to_normalized;"
+"in vec2 in_pos;"
+"in vec2 in_uv;"
+"in vec4 in_color;"
+"out vec2 frag_uv;"
+"out vec4 frag_color;"
 
 "void main() {"
-"   vFinalFragCol = texture(sTexture, vFragUv).rgba * vFragCol;"
+"   gl_Position = pixel_to_normalized * vec4(in_pos, 0.0, 1.0);"
+"   frag_uv = texel_to_normalized * in_uv;"
+"   frag_color = in_color;"
 "}";
 
+static const char* FRAG_SHADER_SRC =
+_IMPL_GLSL_VERSION_HEADER
+"precision mediump float;"
+"in vec2 frag_uv;"
+"in vec4 frag_color;"
+"out vec4 final_frag_color;"
+
+"uniform sampler2D in_texture;"
+
+"void main() {"
+"   final_frag_color = texture(in_texture, frag_uv).rgba * frag_color;"
+"}";
+
+namespace gui {
+std::shared_ptr<RenderGui> RenderGui::GetInstance() {
+    static auto ptr = std::make_shared<RenderGuiGlsl>();
+    return ptr;
+}
+}
+
+RenderGuiGlsl::RenderGuiGlsl() : RenderGui("RenderGuiGlsl") {
+   if (!Init())
+       PLATFORM_ERROR("Failed to initialize RenderGuiGlsl");
+}
+
 RenderGuiGlsl::~RenderGuiGlsl() {
-    if (m_glVertexBuffer)
-        glDeleteBuffers(1, &m_glVertexBuffer);
-    if (m_glIndexBuffer)
-        glDeleteBuffers(1, &m_glIndexBuffer);
+    if (m_vertex_buffer)
+        glDeleteBuffers(1, &m_vertex_buffer);
+    if (m_index_buffer)
+        glDeleteBuffers(1, &m_index_buffer);
 }
 
 bool RenderGuiGlsl::Init() {
     uint8_t white_px[4] = { 255, 255, 255, 255 };
     m_default_texture = Texture::Create(TextureInfo(TextureFormat::RGBA_8_32, 1, 1), white_px);
 
-    static CShaderGlsl vertShader;
-    static CShaderGlsl fragShader;
+    static CShaderGlsl vert_shader(GL_VERTEX_SHADER, VERT_SHADER_SRC);
+    static CShaderGlsl frag_shader(GL_FRAGMENT_SHADER, FRAG_SHADER_SRC);
 
-    if (!vertShader.Compile(GL_VERTEX_SHADER, vertShader_src) ||
-        !fragShader.Compile(GL_FRAGMENT_SHADER, fragShader_src))
+    if (!vert_shader.Compile() ||
+        !frag_shader.Compile())
         return false;
     
-    if (!m_glProgram.AttachShader(vertShader) ||
-        !m_glProgram.AttachShader(fragShader))
-    {
+    if (!m_glProgram.AttachShader(vert_shader) ||
+        !m_glProgram.AttachShader(frag_shader)
+    ) {
         PLATFORM_ERROR("Failed to attach shaders");
         return false;
     }
 
-    m_glProgram.Link();
+    if (!m_glProgram.Link()) {
+        PLATFORM_ERROR("Failed to link shaders");
+        return false;
+    }
 
-    m_mPixelToNormalized = m_glProgram.GetUniformLocation("mPixelToNormalized");
-    m_vTexelToNormalized = m_glProgram.GetUniformLocation("vTexelToNormalized");
-    m_vPos = m_glProgram.GetAttribLocation("vPos");
-    m_vUv = m_glProgram.GetAttribLocation("vUv");
-    m_vCol = m_glProgram.GetAttribLocation("vCol");
+    m_pixel_to_normalized = m_glProgram.GetUniformLocation("pixel_to_normalized");
+    m_texel_to_normalized = m_glProgram.GetUniformLocation("texel_to_normalized");
+    m_in_pos = m_glProgram.GetAttribLocation("in_pos");
+    m_in_uv = m_glProgram.GetAttribLocation("in_uv");
+    m_in_color = m_glProgram.GetAttribLocation("in_color");
 
-    glGenBuffers(1, &m_glVertexBuffer);
-    glGenBuffers(1, &m_glIndexBuffer);
+    glGenBuffers(1, &m_vertex_buffer);
+    glGenBuffers(1, &m_index_buffer);
 
-    glBindBuffer(GL_ARRAY_BUFFER, m_glVertexBuffer);
-    glEnableVertexAttribArray(m_vPos);
-    glEnableVertexAttribArray(m_vUv);
-    glEnableVertexAttribArray(m_vCol);
-    glVertexAttribPointer(m_vPos, 2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)0);
-    glVertexAttribPointer(m_vUv, 2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)(2 * sizeof(float)));
-    glVertexAttribPointer(m_vCol, 4, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)(4 * sizeof(float)));
+    glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
+    glEnableVertexAttribArray(m_in_pos);
+    glEnableVertexAttribArray(m_in_uv);
+    glEnableVertexAttribArray(m_in_color);
+    glVertexAttribPointer(m_in_pos, 2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)0);
+    glVertexAttribPointer(m_in_uv, 2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)(2 * sizeof(float)));
+    glVertexAttribPointer(m_in_color, 4, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)(4 * sizeof(float)));
 
     return true;
 }
@@ -89,8 +105,8 @@ bool RenderGuiGlsl::Init() {
 void RenderGuiGlsl::UploadDrawData(const gui::DrawList& list) {
     m_drawlist = &list;
     
-    glBindBuffer(GL_ARRAY_BUFFER, m_glVertexBuffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_glIndexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
     
     glBufferData(GL_ARRAY_BUFFER,
         list.vertices.size() * sizeof(list.vertices[0]),
@@ -107,12 +123,12 @@ void RenderGuiGlsl::Render() {
     
     glViewport(0, 0, width, height);
     glUseProgram(m_glProgram.GlHandle());
-    glBindBuffer(GL_ARRAY_BUFFER, m_glVertexBuffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_glIndexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
 
     glm::mat4x4 m = glm::mat4x4(1.f);
-    m = glm::ortho<float>(0, ScreenWidth(), ScreenHeight(), 0, 1, -1);
-    glUniformMatrix4fv(m_mPixelToNormalized, 1, GL_FALSE, (const GLfloat*)&m[0][0]);
+    m = glm::ortho<float>(0, width, height, 0, 1, -1);
+    glUniformMatrix4fv(m_pixel_to_normalized, 1, GL_FALSE, (const GLfloat*)&m[0][0]);
 
     for (const gui::DrawCall& call : m_drawlist->calls) {
         // Bind texture
@@ -121,7 +137,7 @@ void RenderGuiGlsl::Render() {
             current_tex = m_default_texture;
         std::shared_ptr<COpenGLTexture> gl_tex = std::dynamic_pointer_cast<COpenGLTexture>(current_tex);
         glBindTexture(GL_TEXTURE_2D, gl_tex->GetId());
-        glUniform2f(m_vTexelToNormalized, 1.f / gl_tex->GetWidth(), 1.f / gl_tex->GetHeight());
+        glUniform2f(m_texel_to_normalized, 1.f / gl_tex->GetWidth(), 1.f / gl_tex->GetHeight());
 
         // Clip geometry
         if (glm::isnan(call.clip_rect.x))

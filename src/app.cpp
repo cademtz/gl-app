@@ -9,7 +9,11 @@
 
 // Temporary includes for testing
 #include "demostuff.hpp"
+#include "render/gui/rendergui.hpp"
+#include "render/sticks/draw.hpp"
+#include "render/sticks/rendersticks.hpp"
 #include <chrono>
+#include <string>
 #include <vector>
 #include <resources/resource.hpp>
 #include <string_view>
@@ -17,7 +21,6 @@
 #include <cstdlib>
 #include <cstring>
 
-static std::unique_ptr<gui::RenderGui> guiRenderer = nullptr;
 Texture::Ptr default_tex;
 gui::Draw draw;
 gui::Draw::Font default_font;
@@ -78,7 +81,6 @@ glm::vec3 crappy_hue_to_rgb(float hue) {
 }
 
 void App::OnSetup() {
-    guiRenderer->Init();
     Platform::SetInputHandler(demostuff.get());
 
     Platform::AddRepeatingTask([] {
@@ -104,17 +106,15 @@ void App::OnSetup() {
 }
 
 void App::OnCleanup() {
-    guiRenderer = nullptr;
 }
 
 void App::Render()
 {
-    static std::vector<glm::vec2> points;
+    const std::vector<glm::vec2>* points;
     static std::basic_string<uint32_t> text;
     int width, height;
     Platform::GetFrameBufferSize(&width, &height);
-
-    points.clear();
+    
     text.clear();
     draw.Clear();
 
@@ -122,13 +122,13 @@ void App::Render()
     draw.SetColor(0,0,0);
     draw.Rect(0, 0, width, height);
 
-    demostuff->GetPoints(&points);
+    points = &demostuff->GetPoints();
     demostuff->GetText(&text);
     
     // Draw all points
-    draw.SetColor(1,1,1);
+    draw.SetColor(1,1,1, 0.25);
     const double freq_seconds = 3;
-    for (glm::vec2& point : points) {
+    for (const glm::vec2& point : *points) {
         double offset = point.x / width * freq_seconds;
         glm::vec2 point_radii = glm::round(glm::vec2(oscillate(8, 32, freq_seconds, offset)));
         draw.TextureEllipse(default_tex, 64, point - point_radii, point_radii * 2.f);
@@ -136,12 +136,30 @@ void App::Render()
 
     // Draw all text
     draw.SetColor(0.6, 0.8, 1);
-    draw.TextUnicode(default_font, glm::vec2(32, 64), text);
+    draw.TextUnicode(default_font, glm::vec2(32, 70), text);
 
+    size_t num_drawcalls = draw.GetDrawList().calls.size();
+    draw.ResetColor();
+    draw.TextAscii(default_font, glm::vec2(32, 50),
+        std::to_string(num_drawcalls) + " draw calls\n" +
+        std::to_string(points->size()) + " points"
+    );
+
+    static auto drawSticks = sticks::Draw();
+
+    drawSticks.Clear();
+    drawSticks.SetColor(1, 1, 1);
+    /*drawSticks.Segment(
+        sticks::Point{.pos=glm::vec2(0.2, 0.2), .cap=sticks::SegmentCap::CIRCLE, .rgba=glm::vec4(1.f)},
+        sticks::Point{.pos=glm::vec2(-0.5, -0.5), .cap=sticks::SegmentCap::CIRCLE, .rgba=glm::vec4(1.f)}
+    );*/
+    
+    static std::shared_ptr<gui::RenderGui> guiRenderer = gui::RenderGui::GetInstance();
     guiRenderer->SetScreenSize(width, height);
     guiRenderer->UploadDrawData(draw.GetDrawList());
     guiRenderer->Render();
+    
+    static auto stickRender = sticks::RenderSticks::GetInstance();
+    //stickRender->UploadDrawData(drawSticks.GetDrawList());
+    //stickRender->Render();
 }
-
-void App::SetGuiRenderer(std::unique_ptr<gui::RenderGui>&& GuiRenderer) { guiRenderer = std::move(GuiRenderer); }
-const std::unique_ptr<gui::RenderGui>& App::GetGuiRenderer() { return guiRenderer; }

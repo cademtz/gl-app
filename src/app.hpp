@@ -18,7 +18,4 @@ namespace App
      * @brief Render to the current frame buffer
      */
     void Render();
-
-    void SetGuiRenderer(std::unique_ptr<gui::RenderGui>&& Render);
-    const std::unique_ptr<gui::RenderGui>& GetGuiRenderer();
 };

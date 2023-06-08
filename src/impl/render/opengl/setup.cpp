@@ -7,7 +7,6 @@
 #include <app.hpp>
 #include <iostream>
 #include "opengl.hpp"
-#include "renderguiglsl.hpp"
 
 #if _IMPL_WINDOW == _IMPL_WINDOW_GLFW
     #include <impl/window/glfw/glfw.hpp>
@@ -34,19 +33,13 @@ static void load_opengl()
     #endif
 }
 
-void _setup_render_api()
-{
+void _setup_render_api() {
     load_opengl();
     
     // Enable alpha/transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    App::SetGuiRenderer(std::make_unique<RenderGuiGlsl>());
 }
 
-void _cleanup_render_api()
-{
-    // Assign nullptr to destroy the previous values
-    App::SetGuiRenderer(nullptr);
+void _cleanup_render_api() {
 }

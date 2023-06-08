@@ -2,15 +2,17 @@
 #include <vector>
 #include <cstddef>
 
-bool CShaderGlsl::Compile(GLenum GlType, const char* GlslSource)
-{
-    DeleteGlShader();
+bool CShaderGlsl::Compile() {
+    if (m_is_ready)
+        return true;
     
-    m_glShader = glCreateShader(GlType);
+    m_glShader = glCreateShader(m_type);
     if (!m_glShader)
         return false;
     
-    glShaderSource(m_glShader, 1, &GlslSource, NULL);
+    std::array<const char*, 1> sources = { m_glsl_source.c_str() }; 
+
+    glShaderSource(m_glShader, 1, sources.data(), NULL);
     glCompileShader(m_glShader);
     
     GLint result;
@@ -28,11 +30,11 @@ bool CShaderGlsl::Compile(GLenum GlType, const char* GlslSource)
         return false;
     }
 
+    m_is_ready = true;
     return true;
 }
 
-void CShaderGlsl::DeleteGlShader()
-{
+void CShaderGlsl::DeleteGlShader() {
     if (m_glShader)
         glDeleteShader(m_glShader);
     m_glShader = 0;

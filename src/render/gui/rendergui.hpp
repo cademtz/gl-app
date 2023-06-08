@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <render/render.hpp>
 
 namespace gui {
@@ -12,7 +13,9 @@ class DrawList;
 class RenderGui : public CRender
 {
 public:
-    RenderGui(const std::string& DebugName) : CRender(DebugName) { }
+    RenderGui(const std::string& debug_name) : CRender(debug_name) { }
+
+    static std::shared_ptr<RenderGui> GetInstance();
 
     /**
      * @brief Set the data to be rendered by @ref Render.

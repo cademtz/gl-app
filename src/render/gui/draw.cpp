@@ -275,7 +275,7 @@ void Draw::EllipseUv(uint32_t num_points, glm::vec2 xy, glm::vec2 size, glm::vec
         glm::vec2 point = radii * rotate + centered_offset;
         glm::vec2 uv_point = uv_radii * rotate + uv_centered_offset;
         
-        m_drawlist.vertices.emplace_back(Vertex{
+        m_drawlist.vertices.push_back(Vertex{
             point.x, point.y,
             uv_point.x, uv_point.y,
             m_rgba.r, m_rgba.g, m_rgba.b, m_rgba.a
@@ -322,9 +322,6 @@ void Draw::AddDrawCall(uint32_t num_indices) {
         call->index_offset = m_drawlist.indices.size() - num_indices;
     
     uint32_t last_drawn_offset = call->index_offset + call->index_count;
-    //std::cout << "last end: " << last_drawn_offset << ", total indices: " << m_drawlist.indices.size();
-    //std::cout << " new end: " << last_drawn_offset + num_indices;
-    //std::cout << std::endl;
     assert(
         last_drawn_offset + num_indices == m_drawlist.indices.size()
         && "Indices are likely unused or being re-used on accident. Make sure num_indices is correct!"

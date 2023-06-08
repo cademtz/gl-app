@@ -9,20 +9,17 @@ CProgramGlsl::~CProgramGlsl() {
     glDeleteProgram(m_glProgram);
 }
 
-bool CProgramGlsl::AttachShader(const CShaderGlsl& Shader)
-{
+bool CProgramGlsl::AttachShader(const CShaderGlsl& Shader) {
     glAttachShader(m_glProgram, Shader.GlHandle());
     return glGetError() == GL_NO_ERROR;
 }
 
-bool CProgramGlsl::Link()
-{
+bool CProgramGlsl::Link() {
     glLinkProgram(m_glProgram);
 
     GLint linkStatus;
     glGetProgramiv(m_glProgram, GL_LINK_STATUS, &linkStatus);
-    if (linkStatus == GL_FALSE)
-    {
+    if (linkStatus == GL_FALSE) {
         GLint log_length;
         glGetProgramiv(m_glProgram, GL_INFO_LOG_LENGTH, &log_length);
         std::vector<GLchar> log(log_length);

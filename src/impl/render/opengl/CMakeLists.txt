@@ -3,5 +3,6 @@ target_sources(Glap PUBLIC
     texture.cpp
     programglsl.cpp
     renderguiglsl.cpp
+    rendersticksglsl.cpp
     shaderglsl.cpp
 )

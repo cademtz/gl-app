@@ -10,9 +10,8 @@ DemoStuff::DemoStuff()
 
 }
 
-size_t DemoStuff::GetPoints(std::vector<glm::vec2>* out_points) const {
-    out_points->insert(out_points->end(), m_points.begin(), m_points.end());
-    return m_points.size();
+const std::vector<glm::vec2>& DemoStuff::GetPoints() const {
+    return m_points;
 }
 
 size_t DemoStuff::GetText(std::basic_string<uint32_t>* out_text) const {

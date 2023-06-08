@@ -14,7 +14,7 @@ public:
     DemoStuff();
 
     InputHandler* GetInputHandler() { return this; }
-    size_t GetPoints(std::vector<glm::vec2>* out_points) const;
+    const std::vector<glm::vec2>& GetPoints() const;
     size_t GetText(std::basic_string<uint32_t>* out_text) const;
 
     void OnPhysicalKey(hid::PhysicalKey key) override;

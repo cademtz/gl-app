@@ -4,10 +4,9 @@
 class CRender
 {
 public:
-    CRender(const std::string& DebugName) : m_debugName(DebugName) { }
+    CRender(const std::string& debug_name) : m_debugName(debug_name) { }
     virtual ~CRender() { }
-
-    virtual bool Init() = 0;
+    
     virtual void Render() = 0;
     
     const std::string m_debugName;
