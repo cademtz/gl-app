@@ -154,11 +154,6 @@ void App::Render()
         sticks::Point{.pos=glm::vec2(0.2, 0.2), .cap=sticks::SegmentCap::CIRCLE, .rgba=glm::vec4(1.f)},
         sticks::Point{.pos=glm::vec2(-0.5, -0.5), .cap=sticks::SegmentCap::CIRCLE, .rgba=glm::vec4(1.f)}
     );
-    
-    static std::shared_ptr<gui::RenderGui> guiRenderer = gui::RenderGui::GetInstance();
-    guiRenderer->SetScreenSize(width, height);
-    guiRenderer->UploadDrawData(draw.GetDrawList());
-    guiRenderer->Render();
 
     sticks::DrawList dlist;
     dlist.vertices.push_back(sticks::Vertex {
@@ -179,7 +174,17 @@ void App::Render()
         0, 3, glm::mat3x3(1.f)
     });
 
-    static auto stickRender = sticks::RenderSticks::GetInstance();
-    stickRender->UploadDrawData(dlist);
-    stickRender->Render();
+
+    // FIXME: Constructing one renderer breaks all other previously-initialized renderers.
+    //  (Merely constructing them will cause this. No uploading/rendering necessary.)
+    // This seems to be caused by any call to `glVertexAttribPointer`.
+    // Tested on Emscripten+GLFW+OpenGL and Windows+GLFW_OpenGL
+    static std::shared_ptr<gui::RenderGui> gui_render = gui::RenderGui::GetInstance();
+    gui_render->SetScreenSize(width, height);
+    gui_render->UploadDrawData(draw.GetDrawList());
+    gui_render->Render();
+
+    static auto stick_render = sticks::RenderSticks::GetInstance();
+    stick_render->UploadDrawData(dlist);
+    stick_render->Render();
 }
