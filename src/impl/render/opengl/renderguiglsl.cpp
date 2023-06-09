@@ -57,6 +57,8 @@ RenderGuiGlsl::~RenderGuiGlsl() {
         glDeleteBuffers(1, &m_vertex_buffer);
     if (m_index_buffer)
         glDeleteBuffers(1, &m_index_buffer);
+    if (m_array_object)
+        glDeleteVertexArrays(1, &m_array_object);
 }
 
 bool RenderGuiGlsl::Init() {
@@ -90,15 +92,24 @@ bool RenderGuiGlsl::Init() {
 
     glGenBuffers(1, &m_vertex_buffer);
     glGenBuffers(1, &m_index_buffer);
+    glGenVertexArrays(1, &m_array_object);
 
+    // While VAO `m_array_object` is active, the following binds and attrib pointers are stored in the object (m_array_object)
+    glBindVertexArray(m_array_object);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
+
     glEnableVertexAttribArray(m_in_pos);
     glEnableVertexAttribArray(m_in_uv);
     glEnableVertexAttribArray(m_in_color);
+
     glVertexAttribPointer(m_in_pos, 2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)0);
     glVertexAttribPointer(m_in_uv, 2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)(2 * sizeof(float)));
     glVertexAttribPointer(m_in_color, 4, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)(4 * sizeof(float)));
+    
+    glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     return true;
 }
@@ -127,8 +138,7 @@ void RenderGuiGlsl::Render() {
     
     glViewport(0, 0, width, height);
     glUseProgram(m_glProgram.GlHandle());
-    glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
+    glBindVertexArray(m_array_object);
 
     glm::mat4x4 m = glm::mat4x4(1.f);
     m = glm::ortho<float>(0, width, height, 0, 1, -1);
@@ -162,7 +172,6 @@ void RenderGuiGlsl::Render() {
     }
 
     glDisable(GL_SCISSOR_TEST);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
     glUseProgram(0);
 }

@@ -9,6 +9,7 @@
 
 // Temporary includes for testing
 #include "demostuff.hpp"
+#include "input/inputqueue.hpp"
 #include "render/gui/rendergui.hpp"
 #include "render/sticks/draw.hpp"
 #include "render/sticks/drawlist.hpp"
@@ -23,9 +24,10 @@
 #include <cstring>
 
 Texture::Ptr default_tex;
-gui::Draw draw;
+gui::Draw draw_gui;
 gui::Draw::Font default_font;
 std::unique_ptr<DemoStuff> demostuff = std::make_unique<DemoStuff>();
+hid::InputQueue input_queue;
 
 ClientTexture::Ptr make_checkers(TextureInfo&& info, uint32_t checker_size, glm::vec4 color1, glm::vec4 color2) {
     ClientTexture::Ptr tex = ClientTexture::Create(std::move(info));
@@ -82,7 +84,7 @@ glm::vec3 crappy_hue_to_rgb(float hue) {
 }
 
 void App::OnSetup() {
-    Platform::SetInputHandler(demostuff.get());
+    Platform::SetInputHandler(&input_queue);
 
     Platform::AddRepeatingTask([] {
         Platform::PreRender();
@@ -101,7 +103,7 @@ void App::OnSetup() {
     });
 
     Platform::AddRepeatingTask([] {
-        default_font = draw.CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 32, 3));
+        default_font = draw_gui.CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 32, 3));
         return false;
     });
 }
@@ -109,61 +111,48 @@ void App::OnSetup() {
 void App::OnCleanup() {
 }
 
-void App::Render()
-{
-    const std::vector<glm::vec2>* points;
-    static std::basic_string<uint32_t> text;
+void App::Render() {
+    input_queue.Flush([](const hid::Event& e) {
+        demostuff->RunEvent(e);
+    });
+
     int width, height;
     Platform::GetFrameBufferSize(&width, &height);
     
-    text.clear();
-    draw.Clear();
+    draw_gui.Clear();
 
     // Clear screen with black rect
-    draw.SetColor(0,0,0);
-    draw.Rect(0, 0, width, height);
+    draw_gui.SetColor(0,0,0);
+    draw_gui.Rect(0, 0, width, height);
 
-    points = &demostuff->GetPoints();
-    demostuff->GetText(&text);
-    
-    // Draw all points
-    draw.SetColor(1,1,1, 0.25);
-    const double freq_seconds = 3;
-    for (const glm::vec2& point : *points) {
-        double offset = point.x / width * freq_seconds;
-        glm::vec2 point_radii = glm::round(glm::vec2(oscillate(8, 32, freq_seconds, offset)));
-        draw.TextureEllipse(default_tex, 64, point - point_radii, point_radii * 2.f);
-    }
+    demostuff->DrawGui(draw_gui);
 
-    // Draw all text
-    draw.SetColor(0.6, 0.8, 1);
-    draw.TextUnicode(default_font, glm::vec2(32, 70), text);
-
-    size_t num_drawcalls = draw.GetDrawList().calls.size();
-    draw.ResetColor();
-    draw.TextAscii(default_font, glm::vec2(32, 50),
-        std::to_string(num_drawcalls) + " draw calls\n" +
-        std::to_string(points->size()) + " points"
+    size_t num_drawcalls = draw_gui.GetDrawList().calls.size();
+    draw_gui.ResetColor();
+    draw_gui.TextAscii(default_font, glm::vec2(32, 50),
+        std::to_string(num_drawcalls) + " draw calls\n"
     );
 
-    static auto drawSticks = sticks::Draw();
+    static auto draw_sticks = sticks::Draw();
 
-    drawSticks.Clear();
-    drawSticks.SetColor(1, 1, 1);
-    drawSticks.Segment(
+    draw_sticks.Clear();
+    /*draw_sticks.SetColor(1, 1, 1);
+    draw_sticks.Segment(
         sticks::Point{.pos=glm::vec2(0.2, 0.2), .cap=sticks::SegmentCap::CIRCLE, .rgba=glm::vec4(1.f)},
         sticks::Point{.pos=glm::vec2(-0.5, -0.5), .cap=sticks::SegmentCap::CIRCLE, .rgba=glm::vec4(1.f)}
-    );
+    );*/
+
+    demostuff->DrawSticks(draw_sticks);
 
     sticks::DrawList dlist;
     dlist.vertices.push_back(sticks::Vertex {
-        0, 0, 0, 0, 1, 1, 1, 1
+        0, 0, 0, 0, 1, 1, 1, 1, 1
     });
     dlist.vertices.push_back(sticks::Vertex {
-        0, 1, .5f, 0, 1, 0, 0, 1
+        0, 1, .5f, 0, 1, 0, 0, 1, 1
     });
     dlist.vertices.push_back(sticks::Vertex {
-        1, 1, 1, 1, 0, 1, 0, 1
+        1, 1, 1, 1, 0, 1, 0, 1, 1
     });
 
     dlist.indices.push_back(0);
@@ -174,17 +163,16 @@ void App::Render()
         0, 3, glm::mat3x3(1.f)
     });
 
+    static auto render_sticks = sticks::RenderSticks::GetInstance();
 
-    // FIXME: Constructing one renderer breaks all other previously-initialized renderers.
-    //  (Merely constructing them will cause this. No uploading/rendering necessary.)
-    // This seems to be caused by any call to `glVertexAttribPointer`.
-    // Tested on Emscripten+GLFW+OpenGL and Windows+GLFW_OpenGL
-    static std::shared_ptr<gui::RenderGui> gui_render = gui::RenderGui::GetInstance();
-    gui_render->SetScreenSize(width, height);
-    gui_render->UploadDrawData(draw.GetDrawList());
-    gui_render->Render();
 
-    static auto stick_render = sticks::RenderSticks::GetInstance();
-    stick_render->UploadDrawData(dlist);
-    stick_render->Render();
+    static std::shared_ptr<gui::RenderGui> render_gui = gui::RenderGui::GetInstance();
+    render_gui->SetScreenSize(width, height);
+    render_gui->UploadDrawData(draw_gui.GetDrawList());
+    render_gui->Render();
+
+    //render_sticks->UploadDrawData(dlist);
+    //render_sticks->Render();
+    render_sticks->UploadDrawData(draw_sticks.GetDrawList());
+    render_sticks->Render();
 }

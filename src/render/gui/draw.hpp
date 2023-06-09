@@ -1,3 +1,4 @@
+#pragma once
 #include <cmath> // NAN
 #include <vector>
 #include <memory>
@@ -13,15 +14,7 @@ namespace gui {
 class Draw;
 class FontAtlas;
 
-class _FontHandle {
-public:
-    _FontHandle(Draw& parent) : m_parent(parent) {}
-    ~_FontHandle() { OnDeath(); }
-    void OnDeath();
-
-private:
-    Draw& m_parent;
-};
+class _FontHandle;
 
 /**
  * @brief Draw with primitive geometry and textures in traditional screen coordinates.

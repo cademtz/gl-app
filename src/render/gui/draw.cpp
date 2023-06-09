@@ -14,7 +14,16 @@ namespace gui {
 static constexpr std::array<uint32_t, 6> rect_indices = { 0,1,2,2,3,0 };
 static constexpr std::array<glm::vec2, 4> rect_wh = { glm::vec2{0.f,0.f}, {1,0}, {1,1}, {0,1} };
 
-void _FontHandle::OnDeath() { m_parent.NotifyDeath(this); }
+class _FontHandle
+{
+public:
+    _FontHandle(Draw& parent) : m_parent(parent) {}
+    ~_FontHandle() { OnDeath(); }
+    void OnDeath() { m_parent.NotifyDeath(this); }
+
+private:
+    Draw& m_parent;
+};
 
 Draw::Draw() {}
 

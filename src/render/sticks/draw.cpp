@@ -6,9 +6,17 @@ namespace sticks {
 
 void Draw::Clear() {
     ResetColor();
+    ResetTransform();
     m_drawlist.vertices.clear();
     m_drawlist.indices.clear();
     m_drawlist.calls.clear();
+    m_current_draw_call = nullptr;
+}
+
+void Draw::SetTransform(const glm::mat3x3& transform) {
+    if (m_transform != transform)
+        OnDrawParamsChanged();
+    m_transform = transform;
 }
 
 void Draw::Segment(const Point& a, const Point& b) {
@@ -29,8 +37,9 @@ void Draw::Segment(const Point& a, const Point& b) {
         glm::vec3 pos = t * glm::vec3(rect_lr[i] * glm::vec2(length, p.radius), 1);
         m_drawlist.vertices.emplace_back(Vertex {
             pos.x, pos.y,
-            0, 0,
-            p.rgba.r, p.rgba.g, p.rgba.b, p.rgba.a
+            0, 1,
+            p.rgba.r, p.rgba.g, p.rgba.b, p.rgba.a,
+            1
         });
     }
 
@@ -39,6 +48,15 @@ void Draw::Segment(const Point& a, const Point& b) {
     }
 
     AddDrawCall(rect_indices.size());
+}
+
+void Draw::Raw(const Vertex* tri) {
+    uint32_t start_index = m_drawlist.indices.size();
+    for (size_t i = 0; i < 3; ++i) {
+        m_drawlist.vertices.push_back(tri[i]);
+        m_drawlist.indices.push_back(start_index + i);
+    }
+    AddDrawCall(3);
 }
 
 glm::mat3x3 Draw::GetLineTransform(const Point& a, const Point& b) {
@@ -54,7 +72,9 @@ glm::mat3x3 Draw::GetLineTransform(const Point& a, const Point& b) {
     return t;
 }
 
-void Draw::OnDrawParamsChanged() {}
+void Draw::OnDrawParamsChanged() {
+    m_current_draw_call = nullptr;
+}
 
 void Draw::AddDrawCall(uint32_t num_indices) {
     if (num_indices == 0)
@@ -77,9 +97,11 @@ void Draw::AddDrawCall(uint32_t num_indices) {
 }
 
 DrawCall* Draw::GetDrawCall() {
+    if (m_current_draw_call)
+        return m_current_draw_call;
     if (m_drawlist.calls.empty())
-        m_drawlist.calls.emplace_back();
-    return &m_drawlist.calls.back();
+        m_drawlist.calls.emplace_back(DrawCall{0, 0, m_transform});
+    return m_current_draw_call = &m_drawlist.calls.back();
 }
 
 }

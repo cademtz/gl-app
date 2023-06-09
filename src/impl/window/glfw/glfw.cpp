@@ -1,11 +1,12 @@
 #include "glfw.hpp"
 #include "GLFW/glfw3.h"
+#include "input/hid.hpp"
 #include <platform.hpp>
 #include <cstdlib>
 
 namespace impl::glfw {
     GLFWwindow* window = nullptr;
-    InputHandler* handler = nullptr;
+    hid::InputHandler* handler = nullptr;
 
     static bool MainTask() {
         // FIXME: GLFW docs says event processing is normally done after buffer swapping,
@@ -33,7 +34,7 @@ namespace impl::glfw {
 
     static void CharCallback(GLFWwindow* window, uint32_t codepoint) {
         if (handler)
-            handler->OnCharKey(codepoint);
+            handler->OnCharKey(hid::CharacterKey{codepoint});
     }
 
     static void CursorPosCallback(GLFWwindow* window, double x, double y) {
@@ -118,7 +119,7 @@ namespace Platform {
         glfwGetFramebufferSize(window, w, h);
     }
 
-    void SetInputHandler(InputHandler* handler) {
+    void SetInputHandler(hid::InputHandler* handler) {
         impl::glfw::handler = handler;
     }
 

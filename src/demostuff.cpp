@@ -1,53 +1,64 @@
 #include "demostuff.hpp"
-#include "hid.hpp"
-#include "mousecodes.hpp"
+#include "glm/gtx/matrix_transform_2d.hpp"
+#include "input/hid.hpp"
+#include "input/inputhandler.hpp"
+#include "input/mousecodes.hpp"
+#include "platform.hpp"
+#include "render/sticks/drawlist.hpp"
 #include <iostream>
 #include <chrono>
 
-DemoStuff::DemoStuff()
-    : m_birth_msec(std::chrono::steady_clock::now().time_since_epoch().count())
-{
+#include <controls/panel.hpp>
+#include <controls/button.hpp>
+#include <memory>
 
+#include <glm/ext/matrix_transform.hpp>
+
+using namespace controls;
+
+DemoStuff::DemoStuff() : m_root_control_pos(0, 100) {
+    auto panel = std::make_unique<Panel>(Panel::LayoutDir::TOP_TO_BOTTOM, glm::vec2(64, 256));
+
+    const glm::vec2 btn_size = glm::vec2(50.f);
+
+    // add_btn
+    Control::Ptr button = std::make_unique<Button>(
+        [this](auto& arg) {
+            AddFunShape();
+        },
+        [](auto& arg){},
+        btn_size
+    );
+    panel->AddChild(std::move(button));
+
+    // remove_btn
+    button = std::make_unique<Button>(
+        [this](auto& arg) { RemoveFunShape(); },
+        [](auto& arg){},
+        btn_size
+    );
+    panel->AddChild(std::move(button));
+
+    m_root_control = std::move(panel);
 }
 
-const std::vector<glm::vec2>& DemoStuff::GetPoints() const {
-    return m_points;
+void DemoStuff::AddFunShape() {
+    m_shapes.emplace_back();
+    std::cout << "AddFunShape" << std::endl;
 }
 
-size_t DemoStuff::GetText(std::basic_string<uint32_t>* out_text) const {
-    out_text->insert(out_text->end(), m_text.begin(), m_text.end());
-    return m_text.size();
-}
-
-void DemoStuff::OnPhysicalKey(hid::PhysicalKey key) {
-    if (key.action == hid::KEY_ACTION_PRESS || key.action == hid::KEY_ACTION_REPEAT) {
-        switch (key.code) {
-        case hid::KEY_BACKSPACE:
-            if (!m_text.empty())
-                m_text.pop_back();
-            break;
-        case hid::KEY_ENTER:
-            m_text += '\n';
-            break;
-        default:
-            break;
-        }
-    }
-}
-
-void DemoStuff::OnCharKey(uint32_t codepoint) {
-    m_text += codepoint;
+void DemoStuff::RemoveFunShape() {
+    if (!m_shapes.empty())
+        m_shapes.pop_back();
+    m_active_vertex = nullptr;
+    std::cout << "RemoveFunShape" << std::endl;
 }
 
 void DemoStuff::OnMousePos(hid::MousePos pos) {
     m_cursor_pos = pos;
-    if (m_mousedown_state[hid::MOUSE_LEFT]) {
-        m_points.push_back(glm::vec2(m_cursor_pos.x, m_cursor_pos.y));
-    }
-    if (m_mousedown_state[hid::MOUSE_RIGHT]) {
-        if (m_points.size())
-            m_points.pop_back();
-    }
+
+    if (m_active_vertex)
+        m_active_vertex->x = pos.x, m_active_vertex->y = pos.y;
 }
 
 void DemoStuff::OnMouseButton(hid::MouseButton btn) {
@@ -55,16 +66,73 @@ void DemoStuff::OnMouseButton(hid::MouseButton btn) {
         m_mousedown_state[btn.code] = btn.action == hid::MOUSE_ACTION_PRESS;
     }
 
-    if (btn.action == hid::MOUSE_ACTION_PRESS) {
-        switch (btn.code) {
-        case hid::MOUSE_LEFT:
-            m_points.push_back(glm::vec2(m_cursor_pos.x, m_cursor_pos.y));
-            break;
-        case hid::MOUSE_RIGHT:
-            if (m_points.size())
-                m_points.pop_back();
-            break;
+    if (btn.code == hid::MOUSE_LEFT) {
+        if (m_mousedown_state[btn.code]) {
+            if (!m_active_vertex)
+                m_active_vertex = FindHoveredVertex();
+        } else {
+            m_active_vertex = nullptr;
+        }
+    }
+
+    if (btn.code == hid::MOUSE_RIGHT && m_mousedown_state[btn.code]) {
+        auto hovered_vert = FindHoveredVertex();
+        for (auto& shape : m_shapes) {
+            for (auto& vert : shape.vertices) {
+                if (hovered_vert == &vert)
+                    shape.SetConvex(vert.convex != 1);
+            }
         }
     }
 }
 
+void DemoStuff::RunEvent(const hid::Event& event) {
+    // TODO: Focus/Hit-test function
+    m_root_control->RunEvent(event, m_root_control_pos.x, m_root_control_pos.y);
+    hid::InputHandler::RunEvent(event);
+}
+
+void DemoStuff::DrawGui(gui::Draw& draw) {
+    // Draw shape handles
+    const sticks::Vertex* hovered_vert = FindHoveredVertex();
+    for (auto& shape : m_shapes) {
+        for (auto& vert : shape.vertices) {
+            glm::vec4 color = glm::vec4(1, 0.5, 0, 0.5);
+            if (&vert == m_active_vertex)
+                color = glm::vec4(1, 0.75, 0, 1);
+            else if (&vert == hovered_vert)
+                color = glm::vec4(1, 0.75, 0, 0.75);
+            
+            const glm::vec2 radius(5);
+            draw.SetColor(color);
+            draw.Ellipse(8, glm::vec2(vert.x, vert.y) - radius, radius * 2.f);
+        }
+    }
+
+    m_root_control->Draw(draw, m_root_control_pos.x, m_root_control_pos.y);
+}
+
+void DemoStuff::DrawSticks(sticks::Draw& draw) {
+    int screen_w, screen_h;
+    Platform::GetFrameBufferSize(&screen_w, &screen_h);
+
+    // Screen-space to normalized
+    glm::mat3x3 m(1.f);
+    m = glm::translate(m, glm::vec2(-1, 1));
+    m = glm::scale(m, glm::vec2(2.f / screen_w,  -2.f / screen_h));
+    draw.SetTransform(m);
+    
+    for (const FunShape& s : m_shapes)
+        draw.Raw(&s.vertices[0]);
+}
+
+sticks::Vertex* DemoStuff::FindHoveredVertex(float radius) {
+    for (auto& shape : m_shapes) {
+        for (auto& vert : shape.vertices) {
+            float distance = glm::distance(glm::vec2(m_cursor_pos.x, m_cursor_pos.y), glm::vec2(vert.x, vert.y));
+            if (distance <= radius)
+                return &vert;
+        }
+    }
+    return nullptr;
+}

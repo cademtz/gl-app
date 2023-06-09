@@ -13,6 +13,13 @@ struct PhysicalKey {
 };
 
 /**
+ * @brief A unicode character
+ */
+struct CharacterKey {
+    uint32_t codepoint;
+};
+
+/**
  * @brief State of a mouse's button
  */
 struct MouseButton {

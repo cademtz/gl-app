@@ -14,9 +14,9 @@ struct Vertex {
     float u, v;
     float r, g, b, a;
     /**
-     * @brief A value of `+1` and `-1` create convex and concave curves respectively
+     * @brief The values `+1` and `-1` create convex and concave curves respectively
      */
-    //float convex;
+    int8_t convex;
 };
 
 struct DrawCall {

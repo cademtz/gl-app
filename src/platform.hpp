@@ -6,7 +6,7 @@
 
 #pragma once
 #include <functional>
-#include "inputhandler.hpp"
+#include "input/inputhandler.hpp"
 
 #define PLATFORM_WARNING(Msg) Platform::Warning(Msg, __FILE__, __LINE__)
 #define PLATFORM_ERROR(Msg) Platform::Error(Msg, __FILE__, __LINE__)
@@ -14,7 +14,7 @@
 namespace Platform {
 using RepeatTaskCallback = std::function<bool()>;
 
-void SetInputHandler(InputHandler* handler);
+void SetInputHandler(hid::InputHandler* handler);
 
 /**
  * @brief Set the return value of @ref ShouldClose to `true`

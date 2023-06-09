@@ -23,6 +23,7 @@ private:
     CProgramGlsl m_glProgram;
     GLuint m_vertex_buffer;
     GLuint m_index_buffer;
+    GLuint m_array_object; // Stores the layout/pointers of attributes in buffers
 
     GLuint m_pixel_to_normalized;
     GLuint m_texel_to_normalized;
