@@ -15,7 +15,7 @@ namespace gui {
     };
 
     /**
-     * @brief Parameters of a single call to @ref CRenderGui.
+     * @brief Parameters of a single call to @ref RenderGui.
      * Calls are grouped under a @ref DrawList, which contains all vertices and indices.
      */
     struct DrawCall {

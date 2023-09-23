@@ -1,6 +1,5 @@
 #pragma once
 
-#include "resources/resource.hpp"
 #include <stb_truetype.h>
 #include <unordered_map>
 #include <fnv1a.hpp>
@@ -8,15 +7,14 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <memory>
 
 // TODO: Make an iterable list of all known ranges.
 // This way, if a user types a previously-unloaded codepoint then
 // the app can load the entire block it belongs in
-/**
- * @brief Get unicode ranges
- */
 
 typedef uint32_t codepoint_t;
+class CResource;
 
 struct UnicodeRange {
     codepoint_t begin, end;
@@ -36,29 +34,26 @@ namespace UnicodeBlocks {
  */
 struct FontBakeConfig {
     FontBakeConfig(std::string&& url, float height_px, uint8_t oversample = 1, UnicodeRange range = UnicodeBlocks::BASIC_LATIN)
-    : url(url), height_px(height_px), oversample(oversample) {
+    : url(std::move(url)), height_px(height_px), oversample(oversample) {
         ranges.push_back(range);
     }
 
     /**
      * @brief Initialize the config with multiple unicode ranges
-     * @param begin 
+     * @param begin Beginning UnicodeRange iterator
+     * @param end Ending UnicodeRange iterator
      */
     template <class T>
     FontBakeConfig(std::string&& url, float height_px, uint8_t oversample, T begin, T end)
-    : url(url), height_px(height_px), oversample(oversample) {
+    : url(std::move(url)), height_px(height_px), oversample(oversample) {
         ranges.insert(ranges.cbegin(), begin, end);
     }
 
-    /**
-     * @return Location of the font file
-     */
+    /** Location of the font file */
     std::string url;
-    /**
-     * @return Desired height, in pixels
-     */
+    /** Desired height, in pixels */
     float height_px;
-
+    /** Size multiplier for more precise downscaling */
     uint8_t oversample;
 
     std::vector<UnicodeRange> ranges;
@@ -69,17 +64,11 @@ struct FontBakeConfig {
  * The Y axis is relative to the baseline, such that +y is above and -y is below.
  */
 struct FontLineMetrics {
-    /**
-     * @brief Top of a line
-     */
+    /** Top of a line */
     int32_t line_y0;
-    /**
-     * @brief Bottom of a line (typically negative)
-     */
+    /** Bottom of a line (typically negative) */
     int32_t line_y1;
-    /**
-     * @brief Additional vertical space between the bottom and top of two lines
-     */
+    /** Additional vertical space between the bottom and top of two lines */
     int32_t gap;
 
     float GetHeight(float scale = 1.f) const { return (line_y1 - line_y0) * scale; }
@@ -96,9 +85,7 @@ struct FontGlyphMetrics {
      * The first coordinate is top-left
      */
     int32_t x0, y0, x1, y1;
-    /**
-     * @brief Horizontal offset to move the cursor to its next position after this glyph
-     */
+    /** Horizontal offset to move the cursor to its next position after this glyph */
     int32_t next_x_offset;
     
     float GetWidth(float scale = 1.f) const { return (x1 - x0) * scale; }
@@ -117,14 +104,10 @@ public:
     
     static std::optional<TrueType> FromTrueType(std::shared_ptr<CResource> truetype);
 
-    /**
-     * @return ID of the corresponding glyph, or `0` if not found
-     */
+    /** @return ID of the corresponding glyph, or `0` if not found */
     uint32_t FindGlyphId(uint32_t codepoint) const;
 
-    /**
-     * @return Additional horizontal space between two glyphs
-     */
+    /** @return Additional horizontal space between two glyphs */
     int32_t GetGlyphKerning(uint32_t glyph1, uint32_t glyph2) const;
 
     /**

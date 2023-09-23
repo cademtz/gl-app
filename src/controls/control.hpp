@@ -16,8 +16,8 @@ namespace controls {
  */
 class Control : public hid::InputHandler {
 public:
-    using Ptr = std::unique_ptr<Control>;
-    using ConstPtr = std::unique_ptr<const Control>;
+    using Ptr = std::shared_ptr<Control>;
+    using ConstPtr = std::shared_ptr<const Control>;
     using Size = glm::vec<2, uint32_t>;
 
     Control(Size layout_size);
@@ -76,7 +76,7 @@ public:
 
 protected:
     /**
-     * @brief Draw the control, in screen-space, at the specified `x` and `y` position.
+     * @brief Draw the control in screen-space, at the specified `x` and `y` position.
      * This function is typically called by @ref Draw
      * @see Draw
      */

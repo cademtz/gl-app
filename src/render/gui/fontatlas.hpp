@@ -13,6 +13,7 @@ class FontAtlas {
 public:
     using Ptr = std::shared_ptr<FontAtlas>;
     using ConstPtr = std::shared_ptr<const FontAtlas>;
+
     /**
      * @brief Glyph texture coordinates in pixels.
      * Coordinates start at the top-left and end at the bottom-right.
@@ -21,14 +22,10 @@ public:
         uint16_t x, y, w, h;
     };
 
-    /**
-     * @brief Construct the atlas with an already-loaded font
-     */
+    /** Construct the atlas with an already-loaded font*/
     FontAtlas(const TrueType& tt, const FontBakeConfig& cfg);
 
-    /**
-     * @return Scale factor to convert font units to pixels
-     */
+    /** @return Scale factor to convert font units to pixels*/
     float GetScale() const { return m_scale; }
     uint8_t GetOversample() const { return m_oversample; }
     

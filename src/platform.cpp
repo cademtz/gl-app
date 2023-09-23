@@ -9,15 +9,13 @@ namespace Platform {
 static bool should_close = false;
 static std::list<RepeatTaskCallback> repeat_tasks;
 
-void Warning(const char* Msg, const char* File, int Line)
-{
+void Warning(const char* Msg, const char* File, int Line) {
     fprintf(stdout, "[!] %s\n", Msg);
     if (File)
         fprintf(stdout, "\t(file \"%s\", line %d)\n", File, Line);
 }
 
-void Error(const char* Msg, const char* File, int Line)
-{
+void Error(const char* Msg, const char* File, int Line) {
     fprintf(stderr, "[!] %s\n", Msg);
     if (File)
         fprintf(stderr, "\t(file \"%s\", line %d)\n", File, Line);
@@ -32,8 +30,7 @@ void AddRepeatingTask(RepeatTaskCallback task) {
     repeat_tasks.push_back(task);
 }
 
-bool RunTasksOnce()
-{
+bool RunTasksOnce() {
     if (ShouldClose())
         return false;
     

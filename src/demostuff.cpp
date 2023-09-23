@@ -17,6 +17,8 @@
 
 using namespace controls;
 
+static gui::FontHandle btn_font = gui::FontManager::CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 16));
+
 static glm::vec2 GetQuadraticPoint(float t, const glm::vec2& a, const glm::vec2& b, const glm::vec2& c) {
     //glm::vec2 interp_a2b = a + (b-a) * t;
     //glm::vec2 interp_b2c = b + (c-b) * t;
@@ -31,21 +33,13 @@ DemoStuff::DemoStuff() : m_root_control_pos(0, 100) {
     const glm::vec2 btn_size = glm::vec2(50.f);
 
     // add_btn
-    Control::Ptr button = std::make_unique<Button>(
-        [this](auto& arg) {
-            AddFunShape();
-        },
-        [](auto& arg){},
-        btn_size
-    );
+    auto button = std::make_unique<Button>(btn_size);
+    button->SetText(U"Add").SetOnPress([this](auto) { AddFunShape(); }).SetFont(btn_font);
     panel->AddChild(std::move(button));
 
     // remove_btn
-    button = std::make_unique<Button>(
-        [this](auto& arg) { RemoveFunShape(); },
-        [](auto& arg){},
-        btn_size
-    );
+    button = std::make_unique<Button>(btn_size);
+    button->SetText(U"Remove").SetOnPress([this](auto) { RemoveFunShape(); }).SetFont(btn_font);
     panel->AddChild(std::move(button));
 
     m_root_control = std::move(panel);

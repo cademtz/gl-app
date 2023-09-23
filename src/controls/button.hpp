@@ -1,7 +1,6 @@
 #pragma once
 #include "control.hpp"
 #include <functional>
-#include <vector>
 #include <string>
 
 namespace controls {
@@ -10,10 +9,14 @@ class Button : public Control {
 public:
     using ButtonHandler = std::function<void(Button&)>;
 
-    Button(ButtonHandler on_press, ButtonHandler on_release, Size size);
+    Button(Size size);
     
-    void SetText(std::basic_string<uint32_t> text);
-    void SetFont(gui::Draw::Font font);
+    /** Set a callback when pressed */
+    Button& SetOnPress(ButtonHandler callback);
+    /** Set a callback when released */
+    Button& SetOnRelease(ButtonHandler callback);
+    Button& SetText(std::u32string text);
+    Button& SetFont(gui::FontHandle font);
     void DrawImpl(gui::Draw& draw, int32_t x, int32_t y) override;
     void OnMousePos(hid::MousePos pos) override;
     void OnMouseButton(hid::MouseButton btn) override;
@@ -40,9 +43,9 @@ private:
     // Called when pressed/released, respectively
     ButtonHandler m_on_press, m_on_release;
 
-    std::basic_string<uint32_t> m_text;
+    std::u32string m_text;
     
-    gui::Draw::Font m_font = nullptr;
+    gui::FontHandle m_font = nullptr;
 };
 
 }

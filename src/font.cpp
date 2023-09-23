@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <cmath>
+#include <resources/resource.hpp>
 
 std::optional<TrueType> TrueType::FromTrueType(std::shared_ptr<CResource> truetype) {
     stbtt_fontinfo info;

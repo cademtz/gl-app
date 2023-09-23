@@ -22,7 +22,7 @@ public:
      */
     virtual void RunEvent(const Event& event);
 
-    virtual ~InputHandler() {};
+    virtual ~InputHandler() {}
 };
 
 }

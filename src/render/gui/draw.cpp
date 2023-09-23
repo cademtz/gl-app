@@ -1,8 +1,8 @@
 #include "draw.hpp"
-#include "font.hpp"
-#include "glm/ext/vector_float2.hpp"
 #include "glm/glm.hpp"
+#include "glm/ext/vector_float2.hpp"
 #include "glm/ext/scalar_constants.hpp"
+#include "fontatlas.hpp"
 #include <resources/resource.hpp>
 #include <array>
 
@@ -13,24 +13,6 @@ namespace gui {
 
 static constexpr std::array<uint32_t, 6> rect_indices = { 0,1,2,2,3,0 };
 static constexpr std::array<glm::vec2, 4> rect_wh = { glm::vec2{0.f,0.f}, {1,0}, {1,1}, {0,1} };
-
-/**
- * @brief Handle that maps to a baked font in a gui::Draw instance.
- * The handle should be stored only as a shared_ptr reference.
- * The handle must not be copied (its memory addresss makes it unique).
- * The handle must not be owned by its gui::Draw instance (or else it only dies when gui::Draw dies)
- */
-class _FontHandle
-{
-public:
-    _FontHandle(Draw& parent) : m_parent(parent) {}
-    _FontHandle(const _FontHandle&) = delete;
-    ~_FontHandle() { OnDeath(); }
-    void OnDeath() { m_parent.NotifyDeath(this); }
-
-private:
-    Draw& m_parent;
-};
 
 Draw::Draw() {}
 
@@ -90,26 +72,8 @@ void Draw::PopClip() {
     m_clip_stack.pop_back();
 }
 
-Draw::Font Draw::CreateFont(FontBakeConfig&& config) {
-    CResource::Ptr res = CResource::LoadSynchronous(config.url);
-    if (!res) {
-        std::cout << "res == nullptr" << std::endl;
-        return nullptr;
-    }
-    
-    std::optional<TrueType> tt = TrueType::FromTrueType(res);
-    if (!tt) {
-        std::cout << "failed to parse truetype" << std::endl;
-        return nullptr;
-    }
-    
-    Font font = std::make_shared<_FontHandle>(*this);
-    m_fonts.emplace(std::make_pair(font.get(), FontAtlas(*tt, std::move(config))));
-    return font;
-}
-
-void Draw::Codepoint(Font font, codepoint_t codepoint, glm::vec2 top_left) {
-    const FontAtlas* atlas = GetFontAtlas(font);
+void Draw::Codepoint(FontHandle font, codepoint_t codepoint, glm::vec2 top_left) {
+    const FontAtlas* atlas = FontManager::GetAtlas(font);
     if (!atlas)
         return;
     
@@ -136,16 +100,16 @@ void Draw::Codepoint(Font font, codepoint_t codepoint, glm::vec2 top_left) {
     AddDrawCall(rect_indices.size());
 }
 
-void Draw::TextUnicode(Font font, glm::vec2 top_left, std::basic_string_view<uint32_t> text) {
+void Draw::TextUnicode(FontHandle font, glm::vec2 top_left, std::u32string_view text) {
     TextInternal(font, top_left, &text.front(), &text.back() + 1, sizeof(text[0]));
 }
 
-void Draw::TextAscii(Font font, glm::vec2 top_left, std::string_view text) {
+void Draw::TextAscii(FontHandle font, glm::vec2 top_left, std::string_view text) {
     TextInternal(font, top_left, &text.front(), &text.back() + 1, sizeof(text[0]));
 }
 
-void Draw::TextInternal(Font font, glm::vec2 top_left, const void* begin, const void* end, uint8_t stride) {
-    const FontAtlas* atlas = GetFontAtlas(font);
+void Draw::TextInternal(FontHandle font, glm::vec2 top_left, const void* begin, const void* end, uint8_t stride) {
+    const FontAtlas* atlas = FontManager::GetAtlas(font);
     if (!atlas)
         return;
     
@@ -209,8 +173,8 @@ void Draw::TextInternal(Font font, glm::vec2 top_left, const void* begin, const 
     AddDrawCall(num_indices);
 }
 
-void Draw::DebugFontAtlas(Font font, glm::vec2 top_left, glm::vec2 size) {
-    FontAtlas* atlas = GetFontAtlas(font);
+void Draw::DebugFontAtlas(FontHandle font, glm::vec2 top_left, glm::vec2 size) {
+    const FontAtlas* atlas = FontManager::GetAtlas(font);
     if (atlas)
         TextureRect(atlas->GetTexture(), top_left, size);
 }
@@ -257,8 +221,6 @@ void Draw::TextureEllipse(Texture::Ptr texture, uint32_t num_points, glm::vec2 t
     AddDrawCall(m_drawlist.indices.size()- prev_num_indices);
 }
 
-void Draw::NotifyDeath(_FontHandle* font) { m_fonts.erase(font); }
-
 void Draw::RectUv(glm::vec2 xy, glm::vec2 size, glm::vec2 uv, glm::vec2 uv_wh) {
     uint32_t index_off = m_drawlist.vertices.size();
     
@@ -304,13 +266,6 @@ void Draw::EllipseUv(uint32_t num_points, glm::vec2 xy, glm::vec2 size, glm::vec
 
 glm::vec2 Draw::VecOrDefault(glm::vec2 value, glm::vec2 default_value) {
     return glm::isnan(value.x) ? default_value : value;
-}
-
-FontAtlas* Draw::GetFontAtlas(Font font) {
-    auto it = m_fonts.find(font.get());
-    if (it == m_fonts.cend())
-        return nullptr;
-    return &it->second;
 }
 
 void Draw::SetTexture(Texture::Ptr texture) {

@@ -4,8 +4,7 @@
 
 namespace controls {
 
-Button::Button(ButtonHandler on_press, ButtonHandler on_release, Size size)
-    : m_on_press(on_press), m_on_release(on_release), Control(size) { }
+Button::Button(Size size) : Control(size) { }
 
 void Button::OnMousePos(hid::MousePos pos) {
     Size size = GetLayoutSize();
@@ -23,22 +22,36 @@ void Button::OnMouseButton(hid::MouseButton btn) {
 
 void Button::OnPress() {
     m_draw.is_down = true;
-    m_on_press(*this);
+    if (m_on_press)
+        m_on_press(*this);
 }
 
 void Button::OnRelease() {
     m_draw.is_down = false;
-    m_on_release(*this);
+    if (m_on_release)
+        m_on_release(*this);
 }
 
-void Button::SetText(std::basic_string<uint32_t> text) {
+Button& Button::SetOnPress(ButtonHandler callback) {
+    m_on_press = callback;
+    return *this;
+}
+
+Button& Button::SetOnRelease(ButtonHandler callback) {
+    m_on_release = callback;
+    return *this;
+}
+
+Button& Button::SetText(std::u32string text) {
     SetShouldRedraw();
     m_text = text;
+    return *this;
 }
 
-void Button::SetFont(gui::Draw::Font font) {
+Button& Button::SetFont(gui::FontHandle font) {
     SetShouldRedraw();
     m_font = font;
+    return *this;
 }
 
 void Button::DrawImpl(gui::Draw& draw, int32_t x, int32_t y) {
@@ -56,7 +69,7 @@ void Button::DrawImpl(gui::Draw& draw, int32_t x, int32_t y) {
         draw.Rect(x, y, size.x, size.y);
         if (!m_text.empty()) {
             draw.SetColor(glm::vec4(1.f));
-            draw.TextUnicode(m_font, glm::vec2(0), m_text);
+            draw.TextUnicode(m_font, glm::vec2(x, y), m_text);
         }
     }
     draw.PopClip();

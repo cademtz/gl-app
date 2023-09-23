@@ -9,7 +9,7 @@ namespace impl::glfw {
     hid::InputHandler* handler = nullptr;
 
     static bool MainTask() {
-        // FIXME: GLFW docs says event processing is normally done after buffer swapping,
+        // TODO: GLFW docs says event processing is normally done after buffer swapping,
         // but this task will run before all others (including rendering)
         // https://www.glfw.org/docs/3.3/input_guide.html#events
         glfwPollEvents();
