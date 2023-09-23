@@ -1,6 +1,6 @@
 #include "glfw.hpp"
 #include "GLFW/glfw3.h"
-#include "input/hid.hpp"
+#include <input/inputhandler.hpp>
 #include <platform.hpp>
 #include <cstdlib>
 

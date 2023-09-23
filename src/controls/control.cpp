@@ -15,8 +15,7 @@ void Control::Draw(gui::Draw& draw, int32_t x, int32_t y) {
 }
 
 void Control::RunEvent(const hid::Event& event, int32_t x, int32_t y) {
-    hid::Event relative_event = std::visit(hid::EventTranslator{-x, -y}, event);
-    RunEvent(relative_event);
+    RunEvent(event.Translate(-x, -y));
 }
 
 void Control::RunEvent(const hid::Event& event) {

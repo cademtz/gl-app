@@ -6,7 +6,8 @@
 
 #pragma once
 #include <functional>
-#include "input/inputhandler.hpp"
+
+namespace hid { class InputHandler; }
 
 #define PLATFORM_WARNING(Msg) Platform::Warning(Msg, __FILE__, __LINE__)
 #define PLATFORM_ERROR(Msg) Platform::Error(Msg, __FILE__, __LINE__)
