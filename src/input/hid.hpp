@@ -5,7 +5,7 @@
 namespace hid {
 
 /**
- * @brief State of a keyboard's key
+ * @brief State of a keyboard key
  */
 struct PhysicalKey {
     KeyCode code;
@@ -20,7 +20,7 @@ struct CharacterKey {
 };
 
 /**
- * @brief State of a mouse's button
+ * @brief State of a mouse button
  */
 struct MouseButton {
     MouseAction action;
@@ -58,7 +58,7 @@ struct SingleTouch {
     /**
      * @brief Rotation in radians. Must be 0 if no rotation is detected.
      */
-    double rotate;  
+    double rotate;
 };
 
 /**

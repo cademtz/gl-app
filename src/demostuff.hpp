@@ -33,7 +33,7 @@ private:
     sticks::Vertex* FindHoveredVertex(float radius = 5.f);
 
     std::array<bool, 256> m_mousedown_state = { false };
-    controls::Control::Ptr m_root_control;
+    controls::Control::Ptr m_root_control = nullptr;
     glm::vec<2, int32_t> m_root_control_pos;
 
     std::vector<FunShape> m_shapes;

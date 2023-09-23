@@ -26,7 +26,10 @@ namespace impl::glfw {
             case GLFW_REPEAT: actkshion = hid::KEY_ACTION_REPEAT; break;
             case GLFW_RELEASE: actkshion = hid::KEY_ACTION_RELEASE; break;
             }
-            handler->OnPhysicalKey(hid::PhysicalKey{.code=(hid::KeyCode)key, .action=(hid::KeyAction)actkshion});
+            hid::PhysicalKey physicalKey = { };
+            physicalKey.code = (hid::KeyCode)key;
+            physicalKey.action = (hid::KeyAction)actkshion;
+            handler->OnPhysicalKey(physicalKey);
         }
         if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
             glfwSetWindowShouldClose(window, GLFW_TRUE);
