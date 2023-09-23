@@ -1,4 +1,5 @@
 #include "shaderglsl.hpp"
+#include <array>
 #include <vector>
 #include <cstddef>
 
@@ -12,7 +13,7 @@ bool CShaderGlsl::Compile() {
     
     std::array<const char*, 1> sources = { m_glsl_source.c_str() }; 
 
-    glShaderSource(m_glShader, 1, sources.data(), NULL);
+    glShaderSource(m_glShader, sources.size(), sources.data(), NULL);
     glCompileShader(m_glShader);
     
     GLint result;
