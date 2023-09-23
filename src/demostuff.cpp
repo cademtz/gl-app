@@ -146,8 +146,8 @@ void DemoStuff::DrawSticks(sticks::Draw& draw) {
     draw.SetTransform(m);
 
     draw.Segment(
-        sticks::Point{.pos=glm::vec2(100, 128), .cap=sticks::SegmentCap::CIRCLE, .radius = 13, .rgba=glm::vec4(1.f)},
-        sticks::Point{.pos=glm::vec2(23, 59), .cap=sticks::SegmentCap::CIRCLE, .radius = 13, .rgba=glm::vec4(1, 0, 0, 1)}
+        sticks::Point{glm::vec2(100, 128), sticks::SegmentCap::CIRCLE, 13, glm::vec4(1.f)},
+        sticks::Point{glm::vec2(23, 59), sticks::SegmentCap::CIRCLE, 13, glm::vec4(1, 0, 0, 1)}
     );
     
     for (const FunShape& s : m_shapes)
