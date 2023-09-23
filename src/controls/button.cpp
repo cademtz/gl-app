@@ -31,6 +31,16 @@ void Button::OnRelease() {
     m_on_release(*this);
 }
 
+void Button::SetText(std::basic_string<uint32_t> text) {
+    SetShouldRedraw();
+    m_text = text;
+}
+
+void Button::SetFont(gui::Draw::Font font) {
+    SetShouldRedraw();
+    m_font = font;
+}
+
 void Button::DrawImpl(gui::Draw& draw, int32_t x, int32_t y) {
     m_draw_prev = m_draw;
 
@@ -44,6 +54,10 @@ void Button::DrawImpl(gui::Draw& draw, int32_t x, int32_t y) {
     draw.PushClip(glm::vec4(x, y, size));
     {
         draw.Rect(x, y, size.x, size.y);
+        if (!m_text.empty()) {
+            draw.SetColor(glm::vec4(1.f));
+            draw.TextUnicode(m_font, glm::vec2(0), m_text);
+        }
     }
     draw.PopClip();
 }

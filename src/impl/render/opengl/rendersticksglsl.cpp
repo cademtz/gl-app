@@ -36,11 +36,6 @@ _IMPL_GLSL_VERSION_HEADER
 "   float dist = frag_convex * (frag_uv[0] * frag_uv[0] - frag_uv[1]);"
 // Anti-aliasing code:
 "   float coverage = clamp(-dist / fwidth(dist), 0., 1.);"
-// Aliasing code:
-//"   float coverage = 0.0;"
-//"   if (dist < 0.0)"
-//"       coverage = 1.0;"
-//
 "   final_frag_color = vec4(frag_color);"
 "   final_frag_color[3] *= coverage;"
 "}";

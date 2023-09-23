@@ -37,7 +37,7 @@ private:
     glm::vec<2, int32_t> m_root_control_pos;
 
     std::vector<FunShape> m_shapes;
-    sticks::Vertex* m_active_vertex;
+    sticks::Vertex* m_active_vertex = nullptr;
 
     hid::MousePos m_cursor_pos;
 };

@@ -1,6 +1,7 @@
 #include "shaderglsl.hpp"
 #include <vector>
 #include <cstddef>
+#include <array>
 
 bool CShaderGlsl::Compile() {
     if (m_is_ready)

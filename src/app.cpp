@@ -136,43 +136,14 @@ void App::Render() {
     static auto draw_sticks = sticks::Draw();
 
     draw_sticks.Clear();
-    /*draw_sticks.SetColor(1, 1, 1);
-    draw_sticks.Segment(
-        sticks::Point{.pos=glm::vec2(0.2, 0.2), .cap=sticks::SegmentCap::CIRCLE, .rgba=glm::vec4(1.f)},
-        sticks::Point{.pos=glm::vec2(-0.5, -0.5), .cap=sticks::SegmentCap::CIRCLE, .rgba=glm::vec4(1.f)}
-    );*/
-
     demostuff->DrawSticks(draw_sticks);
-
-    sticks::DrawList dlist;
-    dlist.vertices.push_back(sticks::Vertex {
-        0, 0, 0, 0, 1, 1, 1, 1, 1
-    });
-    dlist.vertices.push_back(sticks::Vertex {
-        0, 1, .5f, 0, 1, 0, 0, 1, 1
-    });
-    dlist.vertices.push_back(sticks::Vertex {
-        1, 1, 1, 1, 0, 1, 0, 1, 1
-    });
-
-    dlist.indices.push_back(0);
-    dlist.indices.push_back(1);
-    dlist.indices.push_back(2);
-
-    dlist.calls.push_back(sticks::DrawCall{
-        0, 3, glm::mat3x3(1.f)
-    });
-
     static auto render_sticks = sticks::RenderSticks::GetInstance();
-
 
     static std::shared_ptr<gui::RenderGui> render_gui = gui::RenderGui::GetInstance();
     render_gui->SetScreenSize(width, height);
     render_gui->UploadDrawData(draw_gui.GetDrawList());
     render_gui->Render();
 
-    //render_sticks->UploadDrawData(dlist);
-    //render_sticks->Render();
     render_sticks->UploadDrawData(draw_sticks.GetDrawList());
     render_sticks->Render();
 }

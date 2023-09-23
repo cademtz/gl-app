@@ -46,6 +46,7 @@ public:
      * @return `true` if the control should be drawn
      */
     virtual bool ShouldRedraw() const;
+    void SetShouldRedraw();
 
     /**
      * @brief Whether parent controls should re-calculate layout.

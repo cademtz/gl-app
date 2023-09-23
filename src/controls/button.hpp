@@ -2,6 +2,7 @@
 #include "control.hpp"
 #include <functional>
 #include <vector>
+#include <string>
 
 namespace controls {
 
@@ -11,6 +12,8 @@ public:
 
     Button(ButtonHandler on_press, ButtonHandler on_release, Size size);
     
+    void SetText(std::basic_string<uint32_t> text);
+    void SetFont(gui::Draw::Font font);
     void DrawImpl(gui::Draw& draw, int32_t x, int32_t y) override;
     void OnMousePos(hid::MousePos pos) override;
     void OnMouseButton(hid::MouseButton btn) override;
@@ -36,6 +39,10 @@ private:
     DrawState m_draw_prev;
     // Called when pressed/released, respectively
     ButtonHandler m_on_press, m_on_release;
+
+    std::basic_string<uint32_t> m_text;
+    
+    gui::Draw::Font m_font = nullptr;
 };
 
 }

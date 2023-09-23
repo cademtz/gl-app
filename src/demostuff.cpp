@@ -1,4 +1,5 @@
 #include "demostuff.hpp"
+#include "glm/ext/vector_float2.hpp"
 #include "glm/gtx/matrix_transform_2d.hpp"
 #include "input/hid.hpp"
 #include "input/inputhandler.hpp"
@@ -15,6 +16,14 @@
 #include <glm/ext/matrix_transform.hpp>
 
 using namespace controls;
+
+static glm::vec2 GetQuadraticPoint(float t, const glm::vec2& a, const glm::vec2& b, const glm::vec2& c) {
+    //glm::vec2 interp_a2b = a + (b-a) * t;
+    //glm::vec2 interp_b2c = b + (c-b) * t;
+    //glm::vec2 interp_final = interp_a2b + (interp_b2c - interp_a2b) * t;
+    glm::vec2 interp_final = a + t* (-2.f*a + 2.f*b) + t*t*(a - 2.f*b + c);
+    return interp_final;
+}
 
 DemoStuff::DemoStuff() : m_root_control_pos(0, 100) {
     auto panel = std::make_unique<Panel>(Panel::LayoutDir::TOP_TO_BOTTOM, glm::vec2(64, 256));
@@ -94,21 +103,35 @@ void DemoStuff::RunEvent(const hid::Event& event) {
 
 void DemoStuff::DrawGui(gui::Draw& draw) {
     // Draw shape handles
+    const glm::vec2 radius(5);
+
     const sticks::Vertex* hovered_vert = FindHoveredVertex();
     for (auto& shape : m_shapes) {
-        for (auto& vert : shape.vertices) {
+        std::array<glm::vec2, 3> points;
+        for (size_t i = 0; i < shape.vertices.size(); ++i) {
+            auto& vert = shape.vertices[i];
+            points[i] = glm::vec2(vert.x, vert.y);
+
             glm::vec4 color = glm::vec4(1, 0.5, 0, 0.5);
             if (&vert == m_active_vertex)
                 color = glm::vec4(1, 0.75, 0, 1);
             else if (&vert == hovered_vert)
                 color = glm::vec4(1, 0.75, 0, 0.75);
             
-            const glm::vec2 radius(5);
             draw.SetColor(color);
-            draw.Ellipse(8, glm::vec2(vert.x, vert.y) - radius, radius * 2.f);
+            draw.Ellipse(8, points[i] - radius, radius * 2.f);
+        }
+
+        draw.SetColor(0.5, 0.5, 1);
+        for (float t = 0; t < 1; t += 1.f/2) {
+            if (t == 0)
+                continue;
+            glm::vec2 mid_point = GetQuadraticPoint(t, points[0], points[1], points[2]);
+            draw.Ellipse(8, mid_point - radius, radius * 2.f);
         }
     }
 
+    // Draw control panel
     m_root_control->Draw(draw, m_root_control_pos.x, m_root_control_pos.y);
 }
 
@@ -121,6 +144,11 @@ void DemoStuff::DrawSticks(sticks::Draw& draw) {
     m = glm::translate(m, glm::vec2(-1, 1));
     m = glm::scale(m, glm::vec2(2.f / screen_w,  -2.f / screen_h));
     draw.SetTransform(m);
+
+    draw.Segment(
+        sticks::Point{.pos=glm::vec2(100, 128), .cap=sticks::SegmentCap::CIRCLE, .radius = 13, .rgba=glm::vec4(1.f)},
+        sticks::Point{.pos=glm::vec2(23, 59), .cap=sticks::SegmentCap::CIRCLE, .radius = 13, .rgba=glm::vec4(1, 0, 0, 1)}
+    );
     
     for (const FunShape& s : m_shapes)
         draw.Raw(&s.vertices[0]);

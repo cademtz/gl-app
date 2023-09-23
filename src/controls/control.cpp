@@ -38,6 +38,8 @@ bool Control::ShouldRedraw() const {
     return false;
 }
 
+void Control::SetShouldRedraw() { m_update_draw = true; }
+
 bool Control::ShouldUpdateLayout() const {
     if (m_update_layout)
         return true;
