@@ -64,15 +64,13 @@ void Button::DrawImpl(gui::Draw& draw, int32_t x, int32_t y) {
         rgb = glm::vec3(0.7f);
     
     draw.SetColor(glm::vec4(rgb, 1.f));
-    draw.PushClip(glm::vec4(x, y, size));
-    {
-        draw.Rect(x, y, size.x, size.y);
-        if (!m_text.empty()) {
-            draw.SetColor(glm::vec4(1.f));
-            draw.TextUnicode(m_font, glm::vec2(x, y), m_text);
-        }
+    draw.Rect(x, y, size.x, size.y);
+    if (!m_text.empty()) {
+        draw.PushClip(glm::vec4(x, y, size));
+        draw.SetColor(glm::vec4(1.f));
+        draw.TextUnicode(m_font, glm::vec2(x, y), m_text);
+        draw.PopClip();
     }
-    draw.PopClip();
 }
 
 bool Button::ShouldRedraw() const {

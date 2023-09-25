@@ -1,17 +1,17 @@
 #pragma once
 #include <glm/vec2.hpp>
 #include <memory>
-#include <string>
 #include <cstdint>
 #include <vector>
 #include <array>
 #include "input/hid.hpp"
 #include "input/inputhandler.hpp"
-#include "controls/control.hpp"
-#include "render/sticks/drawlist.hpp"
+#include <render/sticks/drawlist.hpp>
 #include <render/sticks/draw.hpp>
 
 struct FunShape;
+namespace controls { class Control; }
+namespace gui { class Draw; }
 
 class DemoStuff : public hid::InputHandler {
 public:
@@ -33,7 +33,7 @@ private:
     sticks::Vertex* FindHoveredVertex(float radius = 5.f);
 
     std::array<bool, 256> m_mousedown_state = { false };
-    controls::Control::Ptr m_root_control = nullptr;
+    std::shared_ptr<controls::Control> m_root_control = nullptr;
     glm::vec<2, int32_t> m_root_control_pos;
 
     std::vector<FunShape> m_shapes;

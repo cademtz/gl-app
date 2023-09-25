@@ -2,15 +2,11 @@
 
 namespace controls {
 
-static const uint16_t fill_mask[] = { (uint16_t)LayoutFlag::H_FILL, (uint16_t)LayoutFlag::V_FILL };
+static const uint16_t fill_mask[] = { LayoutFlag::H_FILL, LayoutFlag::V_FILL };
 static const uint16_t justify_mask[] = {
-    (uint16_t)LayoutFlag::L_JUSTIFY | (uint16_t)LayoutFlag::R_JUSTIFY,
-    (uint16_t)LayoutFlag::T_JUSTIFY | (uint16_t)LayoutFlag::B_JUSTIFY
+    LayoutFlag::L_JUSTIFY | LayoutFlag::R_JUSTIFY,
+    LayoutFlag::T_JUSTIFY | LayoutFlag::B_JUSTIFY
 };
-
-uint16_t Layout::GetPreferredSize(size_t dimension) const {
-    return 0;
-}
 
 size_t Layout::CalcChildHunger(size_t dimension, uint16_t* out_target_size, uint16_t* out_give) const {
     uint16_t target_size = (uint16_t)-1;
@@ -52,7 +48,7 @@ size_t Layout::CalcChildHunger(size_t dimension, uint16_t* out_target_size, uint
 void Layout::Calculate() {
     
     glm::length_t dir = 0; // Direction. 0 for horizontal (also the x index)
-    if (flags & (uint16_t)LayoutFlag::VERTICAL)
+    if (flags & LayoutFlag::VERTICAL)
         dir = 1;
     glm::length_t opp = dir ^ 1; // Perpendicular direction
     
