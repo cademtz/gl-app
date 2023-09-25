@@ -6,18 +6,21 @@
 #include "input/mousecodes.hpp"
 #include "platform.hpp"
 #include "render/sticks/drawlist.hpp"
-#include <iostream>
-#include <chrono>
-
 #include <controls/panel.hpp>
 #include <controls/button.hpp>
-#include <memory>
 
 #include <glm/ext/matrix_transform.hpp>
+#include <iostream>
+#include <chrono>
+#include <memory>
+#include <stack>
 
 using namespace controls;
 
-static gui::FontHandle btn_font = gui::FontManager::CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 16));
+static gui::FontHandle btn_font = gui::FontManager::CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 18, 3));
+static Layout root_layout;
+static glm::vec<2, int> old_frame_size{0};
+static std::unordered_map<Layout*, std::string> layout_names;
 
 static glm::vec2 GetQuadraticPoint(float t, const glm::vec2& a, const glm::vec2& b, const glm::vec2& c) {
     //glm::vec2 interp_a2b = a + (b-a) * t;
@@ -43,6 +46,53 @@ DemoStuff::DemoStuff() : m_root_control_pos(0, 100) {
     panel->AddChild(std::move(button));
 
     m_root_control = std::move(panel);
+    
+    // Expands in all directions
+    Layout* canvas = new Layout;
+    layout_names[canvas] = "canvas";
+    canvas->flags = (uint16_t)LayoutFlag::H_FILL | (uint16_t)LayoutFlag::V_FILL;
+
+    // Timeline. Horizontal layout. Expands horizontally.
+    Layout* timeline = new Layout;
+    layout_names[timeline] = "timeline";
+    timeline->flags = (uint16_t)LayoutFlag::H_FILL;
+    timeline->minsize = Layout::Size{80, 80};
+
+    // Properties. Vertical layout. Expands vertically.
+    Layout* properties = new Layout;
+    layout_names[properties] = "properties";
+    properties->flags = (uint16_t)LayoutFlag::V_FILL | (uint16_t)LayoutFlag::VERTICAL;
+    properties->minsize = Layout::Size{120, 80};
+
+    // Dummy properties. Slightly tall. Expands horizontally
+    for (int i = 0; i < 15; ++i) {
+        Layout* item = new Layout;
+        item->flags = (uint16_t)LayoutFlag::H_FILL;
+        item->minsize.y = 25;
+        properties->children.push_back(item);
+        layout_names[item] = "property #" + std::to_string(i);
+    }
+
+    // Dummy frames. Fixed size.
+    for (int i = 0; i < 25; ++i) {
+        Layout* frame = new Layout;
+        frame->minsize.x = 15;
+        frame->minsize.y = 25;
+        timeline->children.push_back(frame);
+    }
+
+    // Group it all together
+
+    // Canvas, with timeline below. Expands all directions.
+    Layout* animation = new Layout;
+    animation->flags = (uint16_t)LayoutFlag::V_FILL | (uint16_t)LayoutFlag::H_FILL | (uint16_t)LayoutFlag::VERTICAL;
+    animation->children.push_back(canvas);
+    animation->children.push_back(timeline);
+
+    root_layout.children.push_back(animation);
+    root_layout.children.push_back(properties);
+
+    root_layout.Calculate();
 }
 
 void DemoStuff::AddFunShape() {
@@ -95,7 +145,56 @@ void DemoStuff::RunEvent(const hid::Event& event) {
     hid::InputHandler::RunEvent(event);
 }
 
+void DrawLayout(gui::Draw& draw, Layout* layout, size_t depth) {
+    const glm::vec3 colors[] = {
+        glm::vec3{1,0,0},
+        glm::vec3{1,1,0},
+        glm::vec3{0,1,0},
+        glm::vec3{0,1,1},
+        glm::vec3{0,0,1},
+    };
+    const glm::vec3& color = colors[depth % (sizeof(colors) / sizeof(colors[0]))];
+
+    if (layout->IsHidden())
+        return;
+
+    draw.PushClip(layout->rect);
+
+    // Fill
+    draw.SetColor(glm::vec4(color, 0.5));
+    draw.Rect(layout->rect.x, layout->rect.y, layout->rect[2], layout->rect[3]);
+
+    // Outline
+    draw.SetColor(1.0, 1.0, 1.0, 0.5);
+    draw.Rect(layout->rect.x, layout->rect.y, layout->rect[2], 2);
+    draw.Rect(layout->rect.x + layout->rect[2] - 2, layout->rect.y, 2, layout->rect[3]);
+    draw.Rect(layout->rect.x, layout->rect.y + layout->rect[3] - 2, layout->rect[2], 2);
+    draw.Rect(layout->rect.x, layout->rect.y, 2, layout->rect[3]);
+
+    // Name
+    auto it = layout_names.find(layout);
+    if (it != layout_names.end()) {
+        draw.SetColor(0,0,0);
+        draw.TextAscii(btn_font, glm::vec2{ layout->rect.x, layout->rect.y }, it->second);
+    }    
+    for (Layout* child : layout->children)
+        DrawLayout(draw, child, depth + 1);
+
+    draw.PopClip();
+}
+
 void DemoStuff::DrawGui(gui::Draw& draw) {
+    // Calculate layout on window resize
+    glm::vec<2, int> new_frame_size;
+    Platform::GetFrameBufferSize(&new_frame_size.x, &new_frame_size.y);
+    if (new_frame_size != old_frame_size) {
+        old_frame_size = new_frame_size;
+        root_layout.rect = Layout::Rect{0,0, new_frame_size.x, new_frame_size.y};
+        root_layout.Calculate();
+    }
+    
+    DrawLayout(draw, &root_layout, 0);
+
     // Draw shape handles
     const glm::vec2 radius(5);
 

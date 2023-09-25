@@ -5,6 +5,7 @@
 #include <input/inputhandler.hpp>
 #include <glm/vec2.hpp>
 #include <render/gui/draw.hpp>
+#include "layout.hpp"
 
 namespace controls {
 
