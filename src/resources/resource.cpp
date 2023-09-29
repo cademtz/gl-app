@@ -1,31 +1,29 @@
 #include "resource.hpp"
 #include <cassert>
+#include <unordered_map>
 
-std::unordered_map<std::string, std::shared_ptr<CResource>> CResource::loadedResMap;
+static std::unordered_map<std::string, Resource::Ptr> cache;
 
-void CResource::Load(const std::string &url)
-{
-    assert(0 && "Async resource loading is not implemented");
-}
-
-const std::shared_ptr<CResource> CResource::LoadSynchronous(const std::string& url)
-{
-    std::shared_ptr<CResource> res = FindExisting(url);
+Resource::Ptr Resource::Load(const std::string& url) {
+    std::shared_ptr<Resource> res = FindExisting(url);
     if (res)
         return res;
     
-    res = CResource::LoadSynchronous_Impl(url.c_str());
+    res = Resource::LoadInternal(url.c_str());
     if (!res)
         return nullptr;
 
-    auto pair = loadedResMap.emplace(url, std::move(res)).first;
+    auto pair = cache.emplace(url, std::move(res)).first;
     return pair->second;
 }
 
-std::shared_ptr<CResource> CResource::FindExisting(const std::string& url)
-{
-    auto it = loadedResMap.find(url);
-    if (it != loadedResMap.end())
+void Resource::LoadAsync(const std::string& url, bool notify_failure, LoadCallback callback) {
+    LoadAsyncInternal(url, notify_failure, callback);
+}
+
+Resource::Ptr Resource::FindExisting(const std::string& url) {
+    auto it = cache.find(url);
+    if (it != cache.end())
         return it->second;
     return nullptr;
 }

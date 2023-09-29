@@ -14,7 +14,7 @@
 // the app can load the entire block it belongs in
 
 typedef uint32_t codepoint_t;
-class CResource;
+class Resource;
 
 struct UnicodeRange {
     codepoint_t begin, end;
@@ -102,7 +102,7 @@ class TrueType
 public:
     using Ptr = std::shared_ptr<TrueType>;
     
-    static std::optional<TrueType> FromTrueType(std::shared_ptr<CResource> truetype);
+    static std::optional<TrueType> FromTrueType(std::shared_ptr<Resource> truetype);
 
     /** @return ID of the corresponding glyph, or `0` if not found */
     uint32_t FindGlyphId(uint32_t codepoint) const;
@@ -165,10 +165,10 @@ public:
     void GetTextSize(const wchar_t* text, float scale_factor, uint32_t* out_width, uint32_t* out_height);
 
 private:
-    TrueType(std::shared_ptr<CResource> truetype, stbtt_fontinfo info)
+    TrueType(std::shared_ptr<Resource> truetype, stbtt_fontinfo info)
         : m_truetype(truetype), m_info(info) {}
 
-    const std::shared_ptr<CResource> m_truetype;
+    const std::shared_ptr<Resource> m_truetype;
     const stbtt_fontinfo m_info;
 };
 

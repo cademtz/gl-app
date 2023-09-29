@@ -55,7 +55,7 @@ void FontManager::RunQueue() {
         FontHandle handle = GetQueue().top();
         GetQueue().pop();
 
-         CResource::Ptr res = CResource::LoadSynchronous(handle->config.url);
+         Resource::Ptr res = Resource::Load(handle->config.url);
         if (!res) {
             PLATFORM_WARNING("res == nullptr");
             continue;

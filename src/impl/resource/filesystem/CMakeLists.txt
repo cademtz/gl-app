@@ -1,1 +1,0 @@
-target_sources(Glap PUBLIC fs_resource.cpp)

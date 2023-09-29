@@ -1,0 +1,7 @@
+if (IMPL_RESOURCE STREQUAL "FILESYSTEM")
+    target_sources(Glap PUBLIC fs_resource.cpp)
+elseif (IMPL_RESOURCE STREQUAL "EMSCRIPTEN")
+    target_sources(Glap PUBLIC em_resource.cpp)
+else()
+    message(SEND_ERROR "Missing resource implementation")
+endif()

@@ -6,9 +6,9 @@
 #include "input/mousecodes.hpp"
 #include "platform.hpp"
 #include "render/sticks/drawlist.hpp"
-#include <controls/panel.hpp>
-#include <controls/button.hpp>
+#include <render/gui/draw.hpp>
 #include <controls/layout.hpp>
+#include <render/gui/rendergui.hpp>
 
 #include <glm/ext/matrix_transform.hpp>
 #include <iostream>
@@ -16,12 +16,12 @@
 #include <memory>
 #include <stack>
 
-using namespace controls;
+using namespace widgets;
 
 static gui::FontHandle btn_font = gui::FontManager::CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 18, 3));
-static Layout root_layout;
+static Widget::Ptr root_layout;
 static glm::vec<2, int> old_frame_size{0};
-static std::unordered_map<Layout*, std::string> layout_names;
+static std::unordered_map<Widget::Ptr, std::string> layout_names;
 
 static glm::vec2 GetQuadraticPoint(float t, const glm::vec2& a, const glm::vec2& b, const glm::vec2& c) {
     //glm::vec2 interp_a2b = a + (b-a) * t;
@@ -31,65 +31,50 @@ static glm::vec2 GetQuadraticPoint(float t, const glm::vec2& a, const glm::vec2&
     return interp_final;
 }
 
-DemoStuff::DemoStuff() : m_root_control_pos(0, 100) {
-    auto panel = std::make_unique<Panel>(Panel::LayoutDir::TOP_TO_BOTTOM, glm::vec2(64, 256));
-
-    const glm::vec2 btn_size = glm::vec2(50.f);
-
-    // add_btn
-    auto button = std::make_unique<Button>(btn_size);
-    button->SetText(U"Add").SetOnPress([this](auto) { AddFunShape(); }).SetFont(btn_font);
-    panel->AddChild(std::move(button));
-
-    // remove_btn
-    button = std::make_unique<Button>(btn_size);
-    button->SetText(U"Remove").SetOnPress([this](auto) { RemoveFunShape(); }).SetFont(btn_font);
-    panel->AddChild(std::move(button));
-
-    m_root_control = std::move(panel);
-    
+DemoStuff::DemoStuff() {
     // Expands in all directions
-    Layout* canvas = new Layout;
+    Widget::Ptr canvas = std::make_shared<Widget>();
     layout_names[canvas] = "canvas";
-    canvas->SetFlags(LayoutFlag::H_FILL | LayoutFlag::V_FILL);
+    canvas->SetLayoutFlags(LayoutFlag::H_FILL | LayoutFlag::V_FILL);
 
     // Timeline. Horizontal layout. Expands horizontally.
-    Layout* timeline = new Layout;
+    Widget::Ptr timeline = std::make_shared<Widget>();
     layout_names[timeline] = "timeline";
-    timeline->SetFlags(LayoutFlag::H_FILL).SetMinSize({80, 80});
+    timeline->SetLayoutFlags(LayoutFlag::H_FILL).SetMinSize({80, 80});
 
     // Properties. Vertical layout. Expands vertically.
-    Layout* properties = new Layout;
+    Widget::Ptr properties = std::make_shared<Widget>();
     layout_names[properties] = "properties";
-    properties->SetFlags(LayoutFlag::V_FILL | LayoutFlag::VERTICAL).SetMinSize({120, 80});
+    properties->SetLayoutFlags(LayoutFlag::V_FILL | LayoutFlag::VERTICAL).SetMinSize({120, 80});
     
     // Dummy properties. Slightly tall. Expands horizontally
     for (int i = 0; i < 15; ++i) {
-        Layout* item = new Layout;
-        item->SetFlags(LayoutFlag::H_FILL).SetMinSize({0, 25});
-        properties->Children().push_back(item);
+        Widget::Ptr item = std::make_shared<Widget>();
+        item->SetLayoutFlags(LayoutFlag::H_FILL).SetMinSize({0, 25});
+        properties->AddChild(item);
         layout_names[item] = "property #" + std::to_string(i);
     }
 
     // Dummy frames. Fixed size.
     for (int i = 0; i < 25; ++i) {
-        Layout* frame = new Layout;
+        Widget::Ptr frame = std::make_shared<Widget>();
         frame->SetMinSize({15, 25});
-        timeline->Children().push_back(frame);
+        timeline->AddChild(frame);
     }
 
     // Group it all together
 
     // Canvas, with timeline below. Expands all directions.
-    Layout* animation = new Layout;
-    animation->SetFlags(LayoutFlag::V_FILL | LayoutFlag::H_FILL | LayoutFlag::VERTICAL);
-    animation->Children().push_back(canvas);
-    animation->Children().push_back(timeline);
+    Widget::Ptr animation = std::make_shared<Widget>();
+    animation->SetLayoutFlags(LayoutFlag::V_FILL | LayoutFlag::H_FILL | LayoutFlag::VERTICAL);
+    animation->AddChild(canvas);
+    animation->AddChild(timeline);
 
-    root_layout.Children().push_back(animation);
-    root_layout.Children().push_back(properties);
+    root_layout = std::make_shared<Widget>();
+    root_layout->AddChild(animation);
+    root_layout->AddChild(properties);
 
-    root_layout.Calculate();
+    root_layout->CalcLayout();
 }
 
 void DemoStuff::AddFunShape() {
@@ -137,12 +122,10 @@ void DemoStuff::OnMouseButton(hid::MouseButton btn) {
 }
 
 void DemoStuff::RunEvent(const hid::Event& event) {
-    // TODO: Focus/Hit-test function
-    m_root_control->RunEvent(event, m_root_control_pos.x, m_root_control_pos.y);
     hid::InputHandler::RunEvent(event);
 }
 
-void DrawLayout(gui::Draw& draw, Layout* layout, size_t depth) {
+void DrawLayout(gui::Draw& draw, Widget::Ptr layout, size_t depth) {
     const glm::vec3 colors[] = {
         glm::vec3{1,0,0},
         glm::vec3{1,1,0},
@@ -157,41 +140,68 @@ void DrawLayout(gui::Draw& draw, Layout* layout, size_t depth) {
 
     // Fill
     draw.SetColor(glm::vec4(color, 0.5));
-    draw.Rect(layout->Xywh().x, layout->Xywh().y, layout->Xywh()[2], layout->Xywh()[3]);
+    draw.Rect(layout->LayoutRect().x, layout->LayoutRect().y, layout->LayoutRect()[2], layout->LayoutRect()[3]);
 
     // Outline
     draw.SetColor(1.0, 1.0, 1.0, 0.5);
-    draw.Rect(layout->Xywh().x, layout->Xywh().y, layout->Xywh()[2], 2);
-    draw.Rect(layout->Xywh().x + layout->Xywh()[2] - 2, layout->Xywh().y, 2, layout->Xywh()[3]);
-    draw.Rect(layout->Xywh().x, layout->Xywh().y + layout->Xywh()[3] - 2, layout->Xywh()[2], 2);
-    draw.Rect(layout->Xywh().x, layout->Xywh().y, 2, layout->Xywh()[3]);
+    draw.Rect(layout->LayoutRect().x, layout->LayoutRect().y, layout->LayoutRect()[2], 2);
+    draw.Rect(layout->LayoutRect().x + layout->LayoutRect()[2] - 2, layout->LayoutRect().y, 2, layout->LayoutRect()[3]);
+    draw.Rect(layout->LayoutRect().x, layout->LayoutRect().y + layout->LayoutRect()[3] - 2, layout->LayoutRect()[2], 2);
+    draw.Rect(layout->LayoutRect().x, layout->LayoutRect().y, 2, layout->LayoutRect()[3]);
 
-    draw.PushClip(layout->Xywh());
+    draw.PushClip(layout->LayoutRect());
 
     // Name
     auto it = layout_names.find(layout);
     if (it != layout_names.end()) {
         draw.SetColor(0,0,0);
-        draw.TextAscii(btn_font, glm::vec2{ layout->Xywh().x, layout->Xywh().y }, it->second);
+        draw.TextAscii(btn_font, glm::vec2{ layout->LayoutRect().x, layout->LayoutRect().y }, it->second);
     }    
-    for (Layout* child : layout->Children())
+    for (Widget::Ptr child : layout->Children())
         DrawLayout(draw, child, depth + 1);
 
     draw.PopClip();
 }
 
+static Texture::Ptr CreateDummyTexture() {
+    auto tex = Texture::Create(TextureInfo{TextureFormat::RGBA_8_32, 0, 0});
+    return tex;
+}
+
 void DemoStuff::DrawGui(gui::Draw& draw) {
+    if (!m_gui_texture)
+        m_gui_texture = CreateDummyTexture();
+
     // Calculate layout on window resize
     glm::vec<2, int> new_frame_size;
     Platform::GetFrameBufferSize(&new_frame_size.x, &new_frame_size.y);
     if (new_frame_size != old_frame_size) {
         old_frame_size = new_frame_size;
-        root_layout.SetRect({0,0, new_frame_size.x, new_frame_size.y});
-        root_layout.Calculate();
-    }
-    
-    DrawLayout(draw, &root_layout, 0);
+        root_layout->SetLayoutRect({0,0, new_frame_size.x, new_frame_size.y});
+        root_layout->CalcLayout();
 
+        //DrawLayout(draw, root_layout, 0);
+        m_draw.SetColor(1,1,1);
+        m_draw.Rect(200, 200, 100, 100);
+        m_draw.SetColor(1,0,0,0.5);
+        m_draw.Rect(250, 250, 100, 100);
+
+        m_gui_texture->Resize(new_frame_size.x, new_frame_size.y);
+        m_gui_texture->ClearColor(0,0,0,0);
+        auto render = gui::RenderGui::GetInstance();
+        render->SetScreenSize(m_gui_texture->GetWidth(), m_gui_texture->GetHeight());
+        render->UploadDrawData(m_draw.GetDrawList());
+        render->SetTarget(m_gui_texture);
+        render->Render();
+        m_draw.Clear();
+    }
+
+    draw.SetColor(0,1,1);
+    draw.TextAscii(btn_font, {100, 200}, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    
+    draw.ResetColor();
+    draw.TextureRect(m_gui_texture, {0,0});
+    
     // Draw shape handles
     const glm::vec2 radius(5);
 
@@ -220,9 +230,6 @@ void DemoStuff::DrawGui(gui::Draw& draw) {
             draw.Ellipse(8, mid_point - radius, radius * 2.f);
         }
     }
-
-    // Draw control panel
-    m_root_control->Draw(draw, m_root_control_pos.x, m_root_control_pos.y);
 }
 
 void DemoStuff::DrawSticks(sticks::Draw& draw) {

@@ -3,11 +3,11 @@
 #include "window/setup.hpp"
 
 void Platform::Setup() {
-    _setup_window_api();
-    _setup_render_api();
+    impl::window::setup();
+    impl::render::setup();
 }
 
 void Platform::Cleanup() {
-    _cleanup_render_api();
-    _cleanup_window_api();
+    impl::render::cleanup();
+    impl::window::cleanup();
 }

@@ -6,7 +6,7 @@
 #include <cmath>
 #include <resources/resource.hpp>
 
-std::optional<TrueType> TrueType::FromTrueType(std::shared_ptr<CResource> truetype) {
+std::optional<TrueType> TrueType::FromTrueType(std::shared_ptr<Resource> truetype) {
     stbtt_fontinfo info;
     if (!stbtt_InitFont(&info, truetype->UData(), 0))
         return std::nullopt;

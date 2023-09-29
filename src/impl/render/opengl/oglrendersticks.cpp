@@ -2,8 +2,8 @@
 #include <render/sticks/rendersticks.hpp>
 #include <render/sticks/drawlist.hpp>
 #include "glm/ext/matrix_float4x4.hpp"
-#include "impl/render/opengl/shaderglsl.hpp"
-#include "programglsl.hpp"
+#include "oglshader.hpp"
+#include "oglprogram.hpp"
 #include "opengl.hpp"
 
 static const char* VERT_SHADER_SRC =
@@ -53,13 +53,13 @@ static void CheckError() {
     }
 }
 
-class RenderSticksGlsl : public RenderSticks {
+class OglRenderSticks : public RenderSticks {
 public:
-    RenderSticksGlsl() : RenderSticks("RenderSticksGlsl") {
+    OglRenderSticks() {
         if (!Init())
-            PLATFORM_ERROR("Failed to initialize RenderSticksGlsl");
+            PLATFORM_ERROR("Failed to initialize OglRenderSticks");
     }
-    ~RenderSticksGlsl() {
+    ~OglRenderSticks() {
         // TODO: Make buffer classes with destructors
         if (m_vertex_buffer)
             glDeleteBuffers(1, &m_vertex_buffer);
@@ -68,6 +68,8 @@ public:
         if (m_array_object)
             glDeleteVertexArrays(1, &m_array_object);
     }
+
+    TextureFormat GetOutputFormat() override { return TextureFormat::RGBA_8_32; }
 
     void UploadDrawData(const DrawList& list) override {
         m_drawlist = &list;
@@ -104,8 +106,8 @@ public:
 
 private:
     bool Init() {
-        static CShaderGlsl vert_shader(GL_VERTEX_SHADER, VERT_SHADER_SRC);
-        static CShaderGlsl frag_shader(GL_FRAGMENT_SHADER, FRAG_SHADER_SRC);
+        static OglShader vert_shader(GL_VERTEX_SHADER, VERT_SHADER_SRC);
+        static OglShader frag_shader(GL_FRAGMENT_SHADER, FRAG_SHADER_SRC);
 
         if (!vert_shader.Compile() ||
             !frag_shader.Compile()
@@ -151,7 +153,7 @@ private:
         return true;
     }
 
-    CProgramGlsl m_program;
+    OglProgram m_program;
 
     const DrawList* m_drawlist;
     
@@ -163,7 +165,7 @@ private:
 };
 
 std::shared_ptr<RenderSticks> RenderSticks::GetInstance() {
-    static auto ptr = std::make_shared<RenderSticksGlsl>();
+    static auto ptr = std::make_shared<OglRenderSticks>();
     return ptr;
 }
 

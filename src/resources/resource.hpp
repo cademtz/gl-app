@@ -2,52 +2,57 @@
 #include <string>
 #include <memory>
 #include <cstdint>
-#include <unordered_map>
+#include <functional>
 
 /**
  * @brief Load and access data provided with the program
  */
-class CResource
+class Resource
 {
 public:
-    using Ptr = std::shared_ptr<CResource>;
+    using Ptr = std::shared_ptr<Resource>;
+    using LoadCallback = std::function<void(Ptr res)>;
     
-    CResource(CResource&&) = default;
-    virtual ~CResource() {}
+    Resource(Resource&&) = default;
+    virtual ~Resource() {}
 
-    /** Loads a resource asynchronously */
-    static void Load(const std::string& url);
     /**
-     * @brief Loads a resource, waiting until completion
+     * @brief Load a resource, waiting until completion
+     * @return The resource, or `nullptr` on failure
+     */
+    static Ptr Load(const std::string& url);
+    /**
+     * @brief Load a resource and call 
+     * @param url A local URL to the resource. Must not begin with a slash.
+     * @param notify_failure If `true`, then any failure will call `callback` with a `nullptr` resource.
+     * @param callback Called with the resource when it is loaded.
      * @return `nullptr` if the resource could not be loaded
      */
-    static const std::shared_ptr<CResource> LoadSynchronous(const std::string& url);
-    /** @return Array of signed bytes contained in the resource */
-    virtual const int8_t* Data() const = 0;
-    /** @return Array of unsigned bytes contained in the resource */
-    const uint8_t* UData() const {
-        return reinterpret_cast<const unsigned char*>(Data());
-    }
-    /** @return Length of the byte array returned by Data() */
-    virtual size_t Length() const = 0;
+    static void LoadAsync(const std::string& url, bool notify_failure, LoadCallback callback);
+    /** @return Resource data as signed bytes */
+    virtual const int8_t* Data() const { return (const int8_t*)m_data; };
+    /** @return Resource data as unsigned bytes */
+    const uint8_t* UData() const { return (const uint8_t*)m_data; }
+    /** @return Resource length in bytes */
+    virtual size_t Length() const { return m_len; }
 
 protected:
-    CResource() {}
+    Resource(const void* data, size_t data_len) : m_data(data), m_len(data_len) {}
 
-    static std::shared_ptr<CResource> FindExisting(const std::string& url);
+    static Ptr FindExisting(const std::string& url);
     /**
      * @brief Load a copy of the resource in memory
      * @return `nullptr` if the resource could not be loaded
      */
-    static std::shared_ptr<CResource> Load_Impl(const std::string& Path);
+    static void LoadAsyncInternal(const std::string& url, bool notify_failure, LoadCallback callback);
     /**
      * @brief Load a copy of the resource in memory
      * @return `nullptr` if the resource could not be loaded
      */
-    static std::shared_ptr<CResource> LoadSynchronous_Impl(const std::string& Path);
-
-    static std::unordered_map<std::string, std::shared_ptr<CResource>> loadedResMap;
+    static Ptr LoadInternal(const std::string& url);
 
 private:
-    CResource(const CResource&) = delete;
+    const void* const m_data;
+    const size_t m_len;
+    Resource(const Resource&) = delete;
 };

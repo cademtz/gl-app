@@ -1,9 +1,14 @@
 #pragma once
+#include <vector>
+#include <memory>
+#include <unordered_set>
 #include <stdint.h>
 #include <glm/glm.hpp>
-#include <vector>
+#include <input/inputhandler.hpp>
 
-namespace controls {
+namespace gui { class Draw; }
+
+namespace widgets {
 
 /**
  * @brief Layout behavior flags.
@@ -27,58 +32,93 @@ namespace LayoutFlag {
 };
 
 /**
- * @brief Layout node.
- * The final rectangle may extend outside of its parent.
- * An item can only extend to the left/bottom of its parent.
+ * @brief Base widget and layout node.
+ * A layout rect may extend outside of its parent, but only to the bottom/right.
+ * Use the @ref 
  */
-class Layout {
+class Widget : public hid::InputHandler {
 public:
     using Size = glm::vec<2, uint16_t>;
     using Rect = glm::vec<4, uint16_t>;
+    using Ptr = std::shared_ptr<Widget>;
+    using ConstPtr = std::shared_ptr<const Widget>;
 
-    /** @return true if the final rectangle size is 0 */
-    bool IsHidden() const { return rect[2] == 0 || rect[3] == 0; }
-    /** Calculate @ref contentsize and the children's @ref rect and @ref contentsize values */
-    void Calculate();
-    const std::vector<Layout*>& Children() const { return children; }
-    std::vector<Layout*>& Children() { return children; }
+    ~Widget();
+    /** Add a new child anywhere in the list */
+    void InsertChild(Widget::Ptr child, size_t index);
+    /** Add a new child at end of list. Shortcut for @ref InsertChild */
+    void AddChild(Widget::Ptr child) {
+        InsertChild(child, m_children.size());
+    }
+    void RemoveChild(Widget::Ptr child);
+
+    /** Draw the control and validate the drawing */
+    void Redraw(gui::Draw& draw);
+    /**
+     * @brief Layout all children and update the current content size.
+     * This validates the current and child layouts.
+     */
+    void CalcLayout();
+    /** If false, one or more child rects must be recalculated (but not its own) */
+    bool IsValidLayout() const { return m_valid_layout; }
+    /** If false, the widget must be redrawn */
+    bool IsValidDrawing() const { return m_valid_drawing; }
+    /** @return true if the layout rect size is 0 */
+    bool IsHidden() const { return m_layoutrect[2] == 0 || m_layoutrect[3] == 0; }
+
+    const std::vector<Widget::Ptr>& Children() { return m_children; }
+    const std::vector<Widget::ConstPtr>& Children() const {
+        return reinterpret_cast<const std::vector<Widget::ConstPtr>&>(m_children);
+    }
     /** @return The default or minimum size */
-    Size MinSize() const { return minsize; }
+    Size MinSize() const { return m_minsize; }
     /** @return The maxmimum size. Only used if H_FILL or V_FILL is set. */
-    Size MaxSize() const { return maxsize; }
+    Size MaxSize() const { return m_maxsize; }
     /** @return Combined values from @ref LayoutFlag */
-    uint16_t Flags() const { return flags; }
+    uint16_t LayoutFlags() const { return m_layoutflags; }
     /** @return The final rect, `{x,y,w,h}`, relative to the root */
-    const Rect& Xywh() const { return rect; }
+    const Rect& LayoutRect() const { return m_layoutrect; }
+    /** @return Size of contents, unclipped. Useful for scrollbars. */
+    Size ContentSize() const { return m_contentsize; }
     
-    Layout& SetMinSize(Size size) {
-        minsize = size;
+    Widget& SetMinSize(Size size) {
+        m_minsize = size;
         return *this;
     }
-    Layout& SetMaxSize(Size size) {
-        maxsize = size;
+    Widget& SetMaxSize(Size size) {
+        m_maxsize = size;
         return *this;
     }
     /** Replace the current flags */
-    Layout& SetFlags(uint16_t flags) {
-        this->flags = flags;
-        return *this;
-    }
-    Layout& SetRect(const Rect& r) {
-        rect = r;
-        return *this;
-    }
+    Widget& SetLayoutFlags(uint16_t flags);
+    Widget& SetLayoutRect(const Rect& r);
+
+protected:
+    /** Draw the widget over its layout rect */
+    virtual void Draw(gui::Draw& draw) {}
 
 private:
-    Size minsize{0};
-    Size maxsize{(uint16_t)-1};
-    /** Margins, `{l,t,r,b}` */
-    Rect margins{0};
-    Rect rect{0};
-    /** Size of contents, unclipped. Useful for scrollbars */
-    Size contentsize{0};
-    uint16_t flags = 0;
-    std::vector<Layout*> children;
+    /**
+     * @brief Raw pointer to the parent.
+     * Before a parent is destroyed, it must clear this value for all children.
+     */
+    Widget* m_parent;
+    std::vector<Widget::Ptr> m_children;
+
+    Size m_minsize{0};
+    Size m_maxsize{(uint16_t)-1};
+    /** Padding, `{l,t,r,b}` */
+    Rect m_padding{0};
+    Rect m_layoutrect{0};
+    Size m_contentsize{0};
+    uint16_t m_layoutflags = 0;
+
+    bool m_valid_layout = false;
+    bool m_valid_drawing = false;
+
+    void InvalidateLayout();
+    void InvalidateDrawing();
+
     /**
      * Find the smallest growable child's size and the additional size needed to equal the next smallest growable child
      * @param dimension 0 for width, 1 for height

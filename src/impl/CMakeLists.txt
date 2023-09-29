@@ -29,33 +29,10 @@ define_selected_impl_list()
 # Handle each chosen implementation
 #######################################
 
-if (IMPL_WINDOW STREQUAL "GLFW")
-    add_subdirectory(window/glfw)
-else()
-    message(SEND_ERROR "Missing window implementation")
-endif()
-
-if (IMPL_RENDER STREQUAL "OPENGL")
-    add_subdirectory(render/opengl)
-else()
-    message(SEND_ERROR "Missing render implementation")
-endif()
-
-if (IMPL_THREADING STREQUAL "NONE")
-    target_sources(Glap PUBLIC threading/no_threading.cpp)
-elseif (IMPL_THREADING STREQUAL "EMSCRIPTEN")
-    target_sources(Glap PUBLIC threading/em_threading.cpp)
-else()
-    message(SEND_ERROR "Missing threading implementation")
-endif()
-
-if (IMPL_RESOURCE STREQUAL "FILESYSTEM")
-    add_subdirectory(resource/filesystem)
-elseif (IMPL_RESOURCE STREQUAL "EMSCRIPTEN")
-    add_subdirectory(resource/emscripten)
-else()
-    message(SEND_ERROR "Missing resource implementation")
-endif()
+add_subdirectory(window)
+add_subdirectory(render)
+add_subdirectory(threading)
+add_subdirectory(resource)
 
 if (IMPL_PLATFORM STREQUAL "DEFAULT_")
     target_sources(Glap PUBLIC default_platform.cpp)

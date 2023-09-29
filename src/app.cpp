@@ -29,9 +29,16 @@ gui::Draw draw_gui;
 gui::FontHandle default_font = gui::FontManager::CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 32, 3));
 std::unique_ptr<DemoStuff> demostuff = std::make_unique<DemoStuff>();
 hid::InputQueue input_queue;
+Texture::Ptr test_tex;
 
 void App::OnSetup() {
     Platform::SetInputHandler(&input_queue);
+    
+    Resource::Ptr res = Resource::Load("debug/writing.png");
+    if (res) {
+        ClientTexture::Ptr client_tex  = ClientTexture::FromImage(ImageTypeHint::PNG, res->Data(), res->Length());
+        test_tex = Texture::Create(client_tex);
+    }
 
     Platform::AddRepeatingTask([] {
         gui::FontManager::RunQueue();
@@ -60,6 +67,9 @@ void App::Render() {
     draw_gui.SetColor(0,0,0);
     draw_gui.Rect(0, 0, width, height);
 
+    draw_gui.ResetColor();
+    draw_gui.TextureRect(test_tex, glm::vec2{25,25});
+
     demostuff->DrawGui(draw_gui);
 
     size_t num_drawcalls = draw_gui.GetDrawList().calls.size();
@@ -77,6 +87,7 @@ void App::Render() {
     static std::shared_ptr<gui::RenderGui> render_gui = gui::RenderGui::GetInstance();
     render_gui->SetScreenSize(width, height);
     render_gui->UploadDrawData(draw_gui.GetDrawList());
+    render_gui->SetTarget(nullptr);
     render_gui->Render();
 
     render_sticks->UploadDrawData(draw_sticks.GetDrawList());

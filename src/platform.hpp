@@ -21,7 +21,7 @@ void SetShouldClose();
 /** @return `true`, if the app should close gracefully */
 bool ShouldClose();
 /**
- * Prepare the application to run on its current platform.
+ * @brief Prepare the application to run on its current platform.
  * Initialize any necessary APIs, windows, input callbacks, and more.
  */
 void Setup();

@@ -25,7 +25,7 @@ public:
 
 /**
  * @brief Offset the X and Y positions (if any) of an event.
- * Use Event::Translate. It's much more convenient.
+ * Use @ref Event::Translate. It's much more convenient.
  */
 struct EventTranslator {
     int32_t x_off, y_off;

@@ -5,18 +5,17 @@
 #include <functional>
 
 enum class TextureFormat : char {
-    /**
-     * @brief RGB, 8-bit channels, total of 24 bits
-     */
+    /** RGB, 8-bit channels, total of 24 bits */
     RGB_8_24,
-    /**
-     * @brief RGBA, 8-bit channels, total of 32 bits
-     */
+    /** RGBA, 8-bit channels, total of 32 bits */
     RGBA_8_32,
-    /**
-     * @brief Alpha, 8-bit channel
-     */
+    /** Alpha, 8-bit channel */
     A_8_8,
+};
+
+/** Indicate the image format to use */
+enum class ImageTypeHint {
+    NONE, PNG, JPG, GIF, BMP
 };
 
 class TextureInfo {
@@ -32,10 +31,10 @@ public:
     /** @return Number of bytes per row */
     uint32_t GetRowStride() const { return GetPixelStride() * GetWidth(); }
 
-private:
-    const TextureFormat m_format;
-    const uint32_t m_width;
-    const uint32_t m_height;
+protected:
+    TextureFormat m_format;
+    uint32_t m_width;
+    uint32_t m_height;
 };
 
 /**
@@ -48,14 +47,11 @@ public:
     using ExpandOp = std::function<void(std::array<uint8_t, 4> input, std::array<uint8_t, 4>& output)>;
 
     ClientTexture(ClientTexture&& other)
-        : TextureInfo(other), m_data(other.m_data) {
+        : TextureInfo(other), m_data(other.m_data), m_free(other.m_free) {
+        other.m_width = 0, other.m_height = 0;
         other.m_data = nullptr;
     }
-
-    ~ClientTexture() {
-        if (m_data)
-            delete[] m_data;
-    }
+    ~ClientTexture() { m_free(m_data); }
 
     const uint8_t* GetData() const { return m_data; }
     uint8_t* GetData() { return m_data; }
@@ -74,20 +70,31 @@ public:
      * @return `true` if the new data was compatible and written
      */
     bool Write(ClientTexture::ConstPtr new_data, uint32_t x, uint32_t y, uint32_t w = ~(uint32_t)0, uint32_t h = ~(uint32_t)0);
-    
-    /**
-     * @brief Create an new texture by converting each pixel's channels to a new format
-     */
+    /** Create an new texture by converting each pixel's channels to a new format */
     Ptr Convert(TextureFormat new_format, ExpandOp operation);
-
-    static Ptr Create(TextureInfo&& info);
+    static Ptr Create(const TextureInfo& info);
+    /**
+     * @brief Attempt to parse an image file
+     * @param type_hint The image format to parse. May be @ref ImageTypeHint::NONE
+     * @param img_data Pointer to image data
+     * @param img_size Size of image data, in bytes
+     * @return A new texture, or `nullptr`
+     */
+    static Ptr FromImage(ImageTypeHint type_hint, const void* img_data, size_t img_size);
 
 protected:
-    ClientTexture(TextureInfo&& info, uint8_t* data) : TextureInfo(info), m_data(data) {}
+    using FreeFn = void(void* data);
+
+    /**
+     * @param free Required. When freeing a `nullptr`, no action shall occur.
+     */
+    ClientTexture(const TextureInfo& info, uint8_t* data, FreeFn free)
+        : TextureInfo(info), m_data(data), m_free(free) {}
     ClientTexture(const ClientTexture&) = delete;
     
 private:
     uint8_t* m_data;
+    FreeFn* const m_free;
 };
 
 /**
@@ -99,23 +106,21 @@ class Texture : public TextureInfo
 public:
     using Ptr = std::shared_ptr<Texture>;
 
-    virtual ~Texture() {}
-
-    /**
-     * @brief Write new data to a specified portion of the texture
-     */
+    /** Resize the texture. Contents will become undefined. */
+    virtual void Resize(uint32_t width, uint32_t height) = 0;
+    /** Write new data to a specified portion of the texture */
     virtual void Write(uint32_t x, uint32_t y, uint32_t width, uint32_t height, const void* data) = 0;
-
+    /** Set all pixels to one color */
+    virtual void ClearColor(float r, float g, float b, float a) = 0;
     /**
      * @brief Create a new texture. (implementation-defined)
-     * @param data Initial data for the texture. If `data = nullptr`, the initial pixels are undefined
+     * @param data Initial data for the texture. If `data == nullptr`, the initial pixels are undefined
      */
     static Ptr Create(TextureInfo&& info, const void* data = nullptr);
-
     static Ptr Create(ClientTexture::Ptr texture) {
         return Create(TextureInfo(*texture), texture->GetData());
     }
 
 protected:
-    Texture(TextureInfo&& info) : TextureInfo(info) {}
+    Texture(TextureInfo&& info) : TextureInfo(std::move(info)) {}
 };

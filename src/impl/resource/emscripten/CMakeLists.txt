@@ -1,1 +1,0 @@
-target_sources(Glap PUBLIC em_resource.cpp)

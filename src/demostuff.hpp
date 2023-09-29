@@ -8,10 +8,10 @@
 #include "input/inputhandler.hpp"
 #include <render/sticks/drawlist.hpp>
 #include <render/sticks/draw.hpp>
+#include <render/gui/draw.hpp>
 
 struct FunShape;
-namespace controls { class Control; }
-namespace gui { class Draw; }
+class Texture;
 
 class DemoStuff : public hid::InputHandler {
 public:
@@ -33,11 +33,11 @@ private:
     sticks::Vertex* FindHoveredVertex(float radius = 5.f);
 
     std::array<bool, 256> m_mousedown_state = { false };
-    std::shared_ptr<controls::Control> m_root_control = nullptr;
-    glm::vec<2, int32_t> m_root_control_pos;
 
     std::vector<FunShape> m_shapes;
     sticks::Vertex* m_active_vertex = nullptr;
+    std::shared_ptr<Texture> m_gui_texture;
+    gui::Draw m_draw;
 
     hid::MousePos m_cursor_pos;
 };

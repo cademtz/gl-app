@@ -1,0 +1,7 @@
+if (IMPL_THREADING STREQUAL "NONE")
+    target_sources(Glap PUBLIC no_threading.cpp)
+elseif (IMPL_THREADING STREQUAL "EMSCRIPTEN")
+    target_sources(Glap PUBLIC em_threading.cpp)
+else()
+    message(SEND_ERROR "Missing threading implementation")
+endif()

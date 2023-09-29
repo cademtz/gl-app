@@ -5,9 +5,7 @@ namespace hid {
 
 /**
  * @brief Overloads `operator()` for every type in the @ref Event variant.
- *
- * This keeps the weird code away from the actual @ref InputHandler class/header.
- * If this does provide a necessary overload, then it should be added.
+ * If this doesn't provide a necessary overload, then it should be added.
  */
 struct EventToInputHandler {
     InputHandler& handler;

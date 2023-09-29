@@ -1,8 +1,9 @@
 target_sources(Glap PUBLIC
-    setup.cpp
-    texture.cpp
-    programglsl.cpp
-    renderguiglsl.cpp
-    rendersticksglsl.cpp
-    shaderglsl.cpp
+    oglsetup.cpp
+    ogltexture.cpp
+    oglshader.cpp
+    oglprogram.cpp
+    oglframebuffer.cpp
+    oglrendergui.cpp
+    oglrendersticks.cpp
 )

@@ -13,8 +13,6 @@ class DrawList;
 class RenderGui : public CRender
 {
 public:
-    RenderGui(const std::string& debug_name) : CRender(debug_name) { }
-
     static std::shared_ptr<RenderGui> GetInstance();
 
     /**
