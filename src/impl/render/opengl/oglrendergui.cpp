@@ -144,9 +144,12 @@ void OglRenderGui::Render() {
     glm::mat4x4 m;
 
     if (target) {
+        //glBlendFunc(GL_ONE, GL_ZERO);
+        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer.GlHandle());
         m = glm::ortho<float>(0, width, 0, height, 1, -1);
     } else {
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         m = glm::ortho<float>(0, width, height, 0, 1, -1);
     }

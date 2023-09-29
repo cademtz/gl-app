@@ -168,9 +168,22 @@ static Texture::Ptr CreateDummyTexture() {
     return tex;
 }
 
+glm::vec3 hue2rgb(float hue) {
+    const float two_pi = glm::pi<float>() * 2;
+    float r = (glm::cos(two_pi * hue) + 1) / 2;
+    float g = (glm::cos(two_pi * hue - two_pi*(1.0/3)) + 1) / 2;
+    float b = (glm::cos(two_pi * hue - two_pi*(2.0/3)) + 1) / 2;
+    return glm::vec3{r,g,b};
+}
+
 void DemoStuff::DrawGui(gui::Draw& draw) {
     if (!m_gui_texture)
         m_gui_texture = CreateDummyTexture();
+
+    const int count = 15;
+    const float start = 0;
+    const float width = 600;
+    const float spacing = (float)width / count;
 
     // Calculate layout on window resize
     glm::vec<2, int> new_frame_size;
@@ -181,10 +194,11 @@ void DemoStuff::DrawGui(gui::Draw& draw) {
         root_layout->CalcLayout();
 
         //DrawLayout(draw, root_layout, 0);
-        m_draw.SetColor(1,1,1);
-        m_draw.Rect(200, 200, 100, 100);
-        m_draw.SetColor(1,0,0,0.5);
-        m_draw.Rect(250, 250, 100, 100);
+        for (int i = 0; i < count; ++i) {
+            m_draw.SetColor({hue2rgb((float)i/count), 0.25});
+            float offset = spacing * i;
+            m_draw.Rect(start + offset, 150, width - offset, 100);
+        }
 
         m_gui_texture->Resize(new_frame_size.x, new_frame_size.y);
         m_gui_texture->ClearColor(0,0,0,0);
@@ -197,10 +211,18 @@ void DemoStuff::DrawGui(gui::Draw& draw) {
     }
 
     draw.SetColor(0,1,1);
-    draw.TextAscii(btn_font, {100, 200}, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-    
+    draw.TextAscii(btn_font, {0, 150}, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+
     draw.ResetColor();
     draw.TextureRect(m_gui_texture, {0,0});
+
+    draw.SetColor(0,1,1);
+    draw.TextAscii(btn_font, {0, 250}, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    for (int i = 0; i < count; ++i) {
+        draw.SetColor({hue2rgb((float)i/count), 0.25});
+        float offset = spacing * i;
+        draw.Rect(start + offset, 250, width - offset, 100);
+    }
     
     // Draw shape handles
     const glm::vec2 radius(5);
