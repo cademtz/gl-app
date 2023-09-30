@@ -2,6 +2,7 @@
 #include <platform.hpp>
 #include <render/gui/rendergui.hpp>
 #include <render/gui/drawlist.hpp>
+#include <render/gui/draw.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
@@ -135,24 +136,22 @@ void OglRenderGui::Render() {
     float width = ScreenWidth();
     float height = ScreenHeight();
     float aspect = width / height;
-    
-    glViewport(0, 0, width, height);
-    glUseProgram(m_glProgram.GlHandle());
-    glBindVertexArray(m_array_object);
 
     auto target = GetTarget();
     glm::mat4x4 m;
 
     if (target) {
-        //glBlendFunc(GL_ONE, GL_ZERO);
-        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        target->SetPremultiplied(true);
+        m_frame_buffer.SetColorAttachment(target);
         glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer.GlHandle());
         m = glm::ortho<float>(0, width, 0, height, 1, -1);
     } else {
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         m = glm::ortho<float>(0, width, height, 0, 1, -1);
     }
+
+    glViewport(0, 0, width, height);
+    glUseProgram(m_glProgram.GlHandle());
+    glBindVertexArray(m_array_object);
 
     glUniformMatrix4fv(m_pixel_to_normalized, 1, GL_FALSE, (const GLfloat*)&m[0][0]);
 
@@ -161,6 +160,14 @@ void OglRenderGui::Render() {
         Texture::Ptr current_tex = call.texture;
         if (!current_tex)
             current_tex = m_default_texture;
+        
+        if (current_tex->IsPremultiplied())
+            glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+        else if (target)
+            glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
+        else 
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
         std::shared_ptr<OglTexture> gl_tex = std::reinterpret_pointer_cast<OglTexture>(current_tex);
         glBindTexture(GL_TEXTURE_2D, gl_tex->GlHandle());
         glUniform2f(m_texel_to_normalized, 1.f / gl_tex->GetWidth(), 1.f / gl_tex->GetHeight());
@@ -176,7 +183,9 @@ void OglRenderGui::Render() {
             for (int i = 0; i < 4; ++i)
                 irect[i] = (int32_t)glm::round(call.clip_rect[i]);
 
-            float new_y = height - irect.y - irect[3];
+            float new_y = irect.y;
+            if (!target)
+                new_y = height - irect.y - irect[3];
             glScissor(irect.x, new_y, irect[2], irect[3]);
         }
 

@@ -20,21 +20,27 @@ enum class ImageTypeHint {
 
 class TextureInfo {
 public:
-    TextureInfo(TextureFormat format, uint32_t width, uint32_t height)
-        : m_format(format), m_width(width), m_height(height) {}
+    /** @param premul Whether the colors will be premultiplied */
+    TextureInfo(TextureFormat format, uint32_t width, uint32_t height, bool premul = false)
+        : m_format(format), m_width(width), m_height(height), m_premul(premul) {}
 
     TextureFormat GetFormat() const { return m_format; }
     uint32_t GetWidth() const { return m_width; }
     uint32_t GetHeight() const { return m_height; }
+    /** @return true if color components were multiplied by the alpha */
+    bool IsPremultiplied() const { return m_premul; }
     /** @return Number of bytes per pixel */
     uint32_t GetPixelStride() const;
     /** @return Number of bytes per row */
     uint32_t GetRowStride() const { return GetPixelStride() * GetWidth(); }
+    /** true if color components were multiplied by the alpha */
+    void SetPremultiplied(bool value) { m_premul = value; }
 
 protected:
     TextureFormat m_format;
     uint32_t m_width;
     uint32_t m_height;
+    bool m_premul;
 };
 
 /**
