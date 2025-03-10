@@ -4,11 +4,16 @@ project(Glap)
 find_package(OpenGL REQUIRED)
 add_executable(Glap)
 
-target_compile_features(Glap PUBLIC cxx_std_17)
+target_compile_features(Glap PUBLIC cxx_std_20)
 set(CXX_STANDARD_REQUIRED ON)
 
 # Make VSCode useable under code-server 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if (MSVC) # If we're using Microsoft Compiler (tm)
+    add_compile_options(/MP) # Enable multi-threaded compiling
+    add_link_options(/DEBUG:FULL)
+endif()
 
 if (EMSCRIPTEN)
 	
