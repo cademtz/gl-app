@@ -48,11 +48,18 @@ add_subdirectory(src)
 
 # Link all platform-independent libraries
 add_subdirectory(deps/glm)
-
 target_link_libraries(Glap glm)
+target_sources(Glap PRIVATE
+	deps/imgui/imgui.cpp
+	deps/imgui/imgui_widgets.cpp
+	deps/imgui/imgui_tables.cpp
+	deps/imgui/imgui_draw.cpp
+	deps/imgui/imgui_demo.cpp
+)
 
 include_directories(
 	#deps/glfw3/include
+	deps/imgui
 	deps/stb
 	src
 )

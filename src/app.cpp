@@ -24,6 +24,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include <imgui.h>
 
 gui::Draw draw_gui;
 gui::FontHandle default_font = gui::FontManager::CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 32, 3));
@@ -82,4 +83,8 @@ void App::Render() {
 
     render_sticks->UploadDrawData(draw_sticks.GetDrawList());
     render_sticks->Render();
+
+    ImGui::NewFrame();
+    ImGui::ShowDemoWindow();
+    ImGui::Render();
 }

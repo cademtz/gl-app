@@ -1,8 +1,13 @@
-#include "glfw.hpp"
-#include "GLFW/glfw3.h"
+// Ensure OpenGL is always included before GLFW
+#if _IMPL_RENDER == _IMPL_RENDER_OPENGL
+    #include <impl/render/opengl/opengl.hpp>
+#endif
+
+#include <GLFW/glfw3.h>
 #include <input/inputhandler.hpp>
 #include <platform.hpp>
 #include <cstdlib>
+#include <backends/imgui_impl_glfw.cpp>
 
 static GLFWwindow* window = nullptr;
 static hid::InputHandler* handler = nullptr;
@@ -45,23 +50,28 @@ void setup() {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
     Platform::AddRepeatingTask(&MainTask);
 }
 
 void cleanup() {
+    ImGui_ImplGlfw_Shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();
+}
+
+void PreRender() {
+    ImGui_ImplGlfw_NewFrame();
+}
+void PostRender() {
+    glfwSwapBuffers(window);
 }
 
 }
 
 namespace Platform {
     void GetFrameBufferSize(int* w, int* h) { glfwGetFramebufferSize(window, w, h); }
-    void SetInputHandler(hid::InputHandler* handler) { handler = handler; }
-    void PreRender() { }
-    void PostRender() {
-        glfwSwapBuffers(window);
-    }
+    void SetInputHandler(hid::InputHandler* h) { handler = h; }
 }
 
 static bool MainTask() {

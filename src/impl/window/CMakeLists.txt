@@ -1,5 +1,5 @@
 if (IMPL_WINDOW STREQUAL "GLFW")
-    add_subdirectory(glfw)
+    target_sources(Glap PUBLIC glfw.cpp)
 else()
     message(SEND_ERROR "Missing window implementation")
 endif()
