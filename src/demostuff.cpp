@@ -7,7 +7,6 @@
 #include "platform.hpp"
 #include "render/sticks/drawlist.hpp"
 #include <render/gui/draw.hpp>
-#include <controls/layout.hpp>
 #include <render/gui/rendergui.hpp>
 
 #include <glm/ext/matrix_transform.hpp>
@@ -16,12 +15,8 @@
 #include <memory>
 #include <stack>
 
-using namespace widgets;
-
 static gui::FontHandle btn_font = gui::FontManager::CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 18, 3));
-static Widget::Ptr root_layout;
 static glm::vec<2, int> old_frame_size{0};
-static std::unordered_map<Widget::Ptr, std::string> layout_names;
 
 static glm::vec2 GetQuadraticPoint(float t, const glm::vec2& a, const glm::vec2& b, const glm::vec2& c) {
     //glm::vec2 interp_a2b = a + (b-a) * t;
@@ -32,49 +27,6 @@ static glm::vec2 GetQuadraticPoint(float t, const glm::vec2& a, const glm::vec2&
 }
 
 DemoStuff::DemoStuff() {
-    // Expands in all directions
-    Widget::Ptr canvas = std::make_shared<Widget>();
-    layout_names[canvas] = "canvas";
-    canvas->SetLayoutFlags(LayoutFlag::H_FILL | LayoutFlag::V_FILL);
-
-    // Timeline. Horizontal layout. Expands horizontally.
-    Widget::Ptr timeline = std::make_shared<Widget>();
-    layout_names[timeline] = "timeline";
-    timeline->SetLayoutFlags(LayoutFlag::H_FILL).SetMinSize({80, 80});
-
-    // Properties. Vertical layout. Expands vertically.
-    Widget::Ptr properties = std::make_shared<Widget>();
-    layout_names[properties] = "properties";
-    properties->SetLayoutFlags(LayoutFlag::V_FILL | LayoutFlag::VERTICAL).SetMinSize({120, 80});
-    
-    // Dummy properties. Slightly tall. Expands horizontally
-    for (int i = 0; i < 15; ++i) {
-        Widget::Ptr item = std::make_shared<Widget>();
-        item->SetLayoutFlags(LayoutFlag::H_FILL).SetMinSize({0, 25});
-        properties->AddChild(item);
-        layout_names[item] = "property #" + std::to_string(i);
-    }
-
-    // Dummy frames. Fixed size.
-    for (int i = 0; i < 25; ++i) {
-        Widget::Ptr frame = std::make_shared<Widget>();
-        frame->SetMinSize({15, 25});
-        timeline->AddChild(frame);
-    }
-
-    // Group it all together
-
-    // Canvas, with timeline below. Expands all directions.
-    Widget::Ptr animation = std::make_shared<Widget>();
-    animation->SetLayoutFlags(LayoutFlag::V_FILL | LayoutFlag::H_FILL | LayoutFlag::VERTICAL);
-    animation->AddChild(canvas);
-    animation->AddChild(timeline);
-
-    root_layout = std::make_shared<Widget>();
-    root_layout->AddChild(animation);
-    root_layout->AddChild(properties);
-
-    root_layout->CalcLayout();
 }
 
 void DemoStuff::AddFunShape() {
@@ -125,67 +77,12 @@ void DemoStuff::RunEvent(const hid::Event& event) {
     hid::InputHandler::RunEvent(event);
 }
 
-void DrawLayout(gui::Draw& draw, Widget::Ptr layout, size_t depth) {
-    const glm::vec3 colors[] = {
-        glm::vec3{1,0,0},
-        glm::vec3{1,1,0},
-        glm::vec3{0,1,0},
-        glm::vec3{0,1,1},
-        glm::vec3{0,0,1},
-    };
-    const glm::vec3& color = colors[depth % (sizeof(colors) / sizeof(colors[0]))];
-
-    if (layout->IsHidden())
-        return;
-
-    // Fill
-    draw.SetColor(glm::vec4(color, 0.5));
-    draw.Rect(layout->LayoutRect().x, layout->LayoutRect().y, layout->LayoutRect()[2], layout->LayoutRect()[3]);
-
-    // Outline
-    draw.SetColor(1.0, 1.0, 1.0, 0.5);
-    draw.Rect(layout->LayoutRect().x, layout->LayoutRect().y, layout->LayoutRect()[2], 2);
-    draw.Rect(layout->LayoutRect().x + layout->LayoutRect()[2] - 2, layout->LayoutRect().y, 2, layout->LayoutRect()[3]);
-    draw.Rect(layout->LayoutRect().x, layout->LayoutRect().y + layout->LayoutRect()[3] - 2, layout->LayoutRect()[2], 2);
-    draw.Rect(layout->LayoutRect().x, layout->LayoutRect().y, 2, layout->LayoutRect()[3]);
-
-    draw.PushClip(layout->LayoutRect());
-
-    // Name
-    auto it = layout_names.find(layout);
-    if (it != layout_names.end()) {
-        draw.SetColor(0,0,0);
-        draw.TextAscii(btn_font, glm::vec2{ layout->LayoutRect().x, layout->LayoutRect().y }, it->second);
-    }    
-    for (Widget::Ptr child : layout->Children())
-        DrawLayout(draw, child, depth + 1);
-
-    draw.PopClip();
-}
-
 void DemoStuff::DrawGui(gui::Draw& draw) {
     if (!m_gui_texture)
         m_gui_texture = Texture::Create(TextureInfo{TextureFormat::RGBA_8_32, 0, 0});
 
-    // Calculate layout on window resize
-    glm::vec<2, int> new_frame_size;
-    Platform::GetFrameBufferSize(&new_frame_size.x, &new_frame_size.y);
-    if (new_frame_size != old_frame_size) {
-        old_frame_size = new_frame_size;
-        root_layout->SetLayoutRect({0,0, new_frame_size.x, new_frame_size.y});
-        root_layout->CalcLayout();
-
-        DrawLayout(m_draw, root_layout, 0);
-
-        m_gui_texture->Resize(new_frame_size.x, new_frame_size.y);
-        m_gui_texture->ClearColor(0,0,0,0);
-        auto render = gui::RenderGui::GetInstance();
-        render->SetScreenSize(m_gui_texture->GetWidth(), m_gui_texture->GetHeight());
-        render->UploadDrawData(m_draw.GetDrawList());
-        render->SetTarget(m_gui_texture);
-        render->Render();
-        m_draw.Clear();
-    }
+    int frame_width, frame_height;
+    Platform::GetFrameBufferSize(&frame_width, &frame_height);
 
     draw.ResetColor();
     draw.TextureRect(m_gui_texture, {0,0});

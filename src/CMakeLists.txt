@@ -9,7 +9,6 @@ target_sources(Glap PUBLIC
 )
 
 add_subdirectory(resources)
-add_subdirectory(controls)
 add_subdirectory(render)
 add_subdirectory(input)
 add_subdirectory(impl)
