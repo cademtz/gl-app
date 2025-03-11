@@ -101,10 +101,14 @@ void Draw::Codepoint(FontHandle font, codepoint_t codepoint, glm::vec2 top_left)
 }
 
 void Draw::TextUnicode(FontHandle font, glm::vec2 top_left, std::u32string_view text) {
+    if (text.length() == 0)
+        return;
     TextInternal(font, top_left, &text.front(), &text.back() + 1, sizeof(text[0]));
 }
 
 void Draw::TextAscii(FontHandle font, glm::vec2 top_left, std::string_view text) {
+    if (text.length() == 0)
+        return;
     TextInternal(font, top_left, &text.front(), &text.back() + 1, sizeof(text[0]));
 }
 
