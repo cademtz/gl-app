@@ -9,14 +9,21 @@
 #include <misc/cpp/imgui_stdlib.h>
 #include <render/gui/draw.hpp>
 #include <glm/ext/matrix_transform.hpp>
+#include <util/defer.hpp>
 
 namespace Dialog {
 
 static const float GRID_SIZE = 25;
 static const int NODE_HEIGHT = GRID_SIZE;
 static const int NODE_WIDTH = GRID_SIZE*4;
+static const float VIEWPORT_SCALE_MAX = 8.f;
+static const float VIEWPORT_SCALE_MIN = 1.f/8;
 glm::vec2 viewport_origin{0.f};
 float viewport_scale = 1;
+
+static glm::vec2 mclick_world{0.f}; // The last mouse click in world coords
+static glm::vec2 eclick_world{0.f}; // The last clicked entity's world coords
+static glm::vec2 viewport_pos{0.f}, viewport_size{0.f};
 
 struct Span {
     std::string text;
@@ -26,7 +33,7 @@ struct Node {
     std::string name;
     std::string desc;
     std::vector<Span> spans;
-    float x = 0, y = 0;
+    glm::vec2 pos{0.f};
 };
 
 using NodePtr = std::weak_ptr<Node>;
@@ -34,7 +41,7 @@ using NodePtr = std::weak_ptr<Node>;
 struct Graph {
     NodePtr root;
     std::vector<std::shared_ptr<Node>> nodes;
-    float next_y = GRID_SIZE;
+    float next_y = 0;
     uint32_t next_name = 0;
 
     NodePtr AddNode() {
@@ -44,8 +51,7 @@ struct Graph {
         node->name = std::to_string(next_name);
         ++next_name;
 
-        node->x = GRID_SIZE;
-        node->y = next_y;
+        node->pos.y = next_y;
         next_y += GRID_SIZE;
         return node;
     }
@@ -64,6 +70,10 @@ struct Graph {
 
 static Graph graph;
 static NodePtr selected_node_ptr;
+
+void DrawNode(gui::Draw& draw, std::shared_ptr<Node> node);
+glm::mat3 ViewToWorld();
+glm::mat3 WorldToView();
 
 void OnSetup() {
     graph.AddNode();
@@ -84,6 +94,7 @@ void OnImGui() {
                 ImGui::PushID(i);
                 if (ImGui::Selectable(graph.nodes[i]->name.c_str(), graph.nodes[i] == selected_node)) {
                     selected_node_ptr = graph.nodes[i];
+                    viewport_origin = graph.nodes[i]->pos;
                 }
                 ImGui::PopID();
             }
@@ -101,50 +112,86 @@ void OnImGui() {
 void OnImGuiViewport(bool viewport_input) {
     ImGui::Text("Zoom"); ImGui::SameLine();
     ImGui::SetNextItemWidth(100);
-    ImGui::SliderFloat("##zoom", &viewport_scale, 1.f/4, 4, "%.3f", ImGuiSliderFlags_Logarithmic);
+    ImGui::SliderFloat("##zoom", &viewport_scale, VIEWPORT_SCALE_MIN, VIEWPORT_SCALE_MAX, "%.3f", ImGuiSliderFlags_Logarithmic);
+
+    ImVec2 win_pos = ImGui::GetWindowPos();
+    ImVec2 win_size = ImGui::GetWindowSize();
+    viewport_pos = glm::vec2{win_pos.x, win_pos.y};
+    viewport_size = glm::vec2{win_size.x, win_size.y};
 
     if (!viewport_input)
         return;
     ImGuiIO& io = ImGui::GetIO();
 
     std::shared_ptr<Node> hovered_node;
+    glm::mat3 to_world = ViewToWorld();
+    glm::vec2 mouse_world = glm::vec2{to_world * glm::vec3{io.MousePos.x, io.MousePos.y, 1.f}};
     for (std::shared_ptr<Node> node : graph.nodes) {
-        int left = node->x, top = node->y;
+        int left = node->pos.x, top = node->pos.y;
         int right = left + NODE_WIDTH, bottom = top + NODE_HEIGHT;
-        if (io.MousePos.x >= left && io.MousePos.x <= right && io.MousePos.y >= top && io.MousePos.y <= bottom) {
+        if (mouse_world.x >= left && mouse_world.x <= right && mouse_world.y >= top && mouse_world.y <= bottom) {
             hovered_node = node;
             break;
         }
     }
     
-    if (io.MouseClicked[0]) {
-        selected_node_ptr = hovered_node;
+    // Only handle one mouse button in a frame
+    int mbtn_down = -1;
+    for (int i = ImGuiMouseButton_COUNT-1; i >= 0; --i) {
+        if (io.MouseDown[i])
+            mbtn_down = i;
     }
+
+    if (io.MouseClicked[ImGuiMouseButton_Left]) {
+        selected_node_ptr = hovered_node;
+        if (hovered_node) {
+            mclick_world = mouse_world;
+            eclick_world = hovered_node->pos;
+        }
+    } else if (mbtn_down == -1 && io.MouseWheel != 0) {
+        float factor = glm::pow(2, (io.MouseWheel + 1)/8.f);
+        if (io.MouseWheel < 0)
+            factor = 1.f/glm::pow(2, (-io.MouseWheel + 1)/8.f);
+        viewport_scale = glm::clamp(viewport_scale * factor, VIEWPORT_SCALE_MIN, VIEWPORT_SCALE_MAX);
+    } 
     
     std::shared_ptr<Node> selected_node = selected_node_ptr.lock();
     if (selected_node != nullptr) {
-        if (io.MouseDown[0]) {
-            selected_node->x += io.MouseDelta.x;
-            selected_node->y += io.MouseDelta.y;
-        } else {
-            selected_node->x = (int32_t)selected_node->x - ((int32_t)(selected_node->x-(GRID_SIZE/2)) % (int32_t)GRID_SIZE)+(int32_t)(GRID_SIZE/2);
-            selected_node->y = (int32_t)selected_node->y - ((int32_t)(selected_node->y-(GRID_SIZE/2)) % (int32_t)GRID_SIZE)+(int32_t)(GRID_SIZE/2);
+        if (mbtn_down == ImGuiMouseButton_Left) {
+            selected_node->pos = glm::floor(eclick_world + mouse_world - mclick_world + GRID_SIZE/2);
+            selected_node->pos.x -= (int32_t)selected_node->pos.x % (int32_t)GRID_SIZE;
+            selected_node->pos.y -= (int32_t)selected_node->pos.y % (int32_t)GRID_SIZE;
         }
+    }
+
+    if (mbtn_down == ImGuiMouseButton_Right || mbtn_down == ImGuiMouseButton_Middle) {
+        viewport_origin -= glm::vec2{io.MouseDelta.x, io.MouseDelta.y} / viewport_scale;
     }
 }
 
-void DrawNode(gui::Draw& draw, std::shared_ptr<Node> node);
-glm::vec2 ViewToWorld(glm::vec2 pos) {
-    ImVec2 win_pos = ImGui::GetWindowPos();
-    ImVec2 win_size = ImGui::GetWindowSize();
-    glm::vec2 win_center{win_pos.x + win_size.x/2, win_pos.y + win_size.y/2};
-    return (pos - win_center)/viewport_scale + viewport_origin;
+glm::mat3 WorldToView() {
+    glm::vec2 center = {viewport_pos.x + (int32_t)viewport_size.x/2, viewport_pos.y + (int32_t)viewport_size.y/2};
+    return glm::mat3{
+        1.f, 0.f, 0.f,
+        0.f, 1.f, 0.f,
+        center.x - viewport_origin.x*viewport_scale, center.y - viewport_origin.y*viewport_scale, 1.f
+    } * glm::mat3{
+        viewport_scale, 0.f, 0.f,
+        0.f, viewport_scale, 0.f,
+        0.f, 0.f, 1.f
+    };
 }
-glm::vec2 WorldToView(glm::vec2 pos) {
-    ImVec2 win_pos = ImGui::GetWindowPos();
-    ImVec2 win_size = ImGui::GetWindowSize();
-    glm::vec2 win_center{win_pos.x + win_size.x/2, win_pos.y + win_size.y/2};
-    return (pos - viewport_origin)*viewport_scale + win_center;
+glm::mat3 ViewToWorld() {
+    glm::vec2 center = {viewport_pos.x + (int32_t)viewport_size.x/2, viewport_pos.y + (int32_t)viewport_size.y/2};
+    return glm::mat3{
+        1.f/viewport_scale, 0.f, 0.f,
+        0.f, 1.f/viewport_scale, 0.f,
+        0.f, 0.f, 1.f
+    } * glm::mat3{
+        1.f, 0.f, 0.f,
+        0.f, 1.f, 0.f,
+        -center.x + viewport_origin.x*viewport_scale, -center.y + viewport_origin.y*viewport_scale, 1.f
+    };
 }
 
 void OnDrawGui(gui::Draw& draw) {
@@ -152,15 +199,10 @@ void OnDrawGui(gui::Draw& draw) {
     int width, height;
     Platform::GetFrameBufferSize(&width, &height);
 
-    draw.PushTransform(glm::mat3{
-        1.f, 0.f, 0.f,
-        0.f, 1.f, 0.f,
-        (float)width/2 + viewport_origin.x, (float)height/2 + viewport_origin.y, 1.f
-    } * glm::mat3{
-        viewport_scale, 0.f, 0.f,
-        0.f, viewport_scale, 0.f,
-        0.f, 0.f, 1.f
-    });
+    draw.PushClip(glm::vec4{viewport_pos, viewport_size});
+    defer { draw.PopClip(); };
+    draw.PushTransform(WorldToView());
+    defer { draw.PopTransform(); };
 
     for (int x = 0; x*GRID_SIZE < width; ++x) {
         for (int y = 0; y*GRID_SIZE < height; ++y) {
@@ -182,20 +224,18 @@ void OnDrawGui(gui::Draw& draw) {
     }
     if (selected_node != nullptr)
         DrawNode(draw, selected_node);
-    
-    draw.PopTransform();
 }
 
 void DrawNode(gui::Draw& draw, std::shared_ptr<Node> node) {
     draw.SetColor(1,1,1);
-    draw.Rect(node->x, node->y, NODE_WIDTH, NODE_HEIGHT);
+    draw.Rect(node->pos.x, node->pos.y, NODE_WIDTH, NODE_HEIGHT);
 
     glm::vec4 color = {0.f, 0.f, 0.f, 1.f};
     if (node == selected_node_ptr.lock()) {
         color = {1.f, 0.f, 0.f, 1.f};
     }
     draw.SetColor(color);
-    draw.TextAscii(App::font_default, glm::vec2{node->x, node->y}, node->name);
+    draw.TextAscii(App::font_default, node->pos, node->name);
 }
 
 void OnInput() {

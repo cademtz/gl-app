@@ -125,8 +125,8 @@ void App::Render() {
     {
         bool viewport_input = ImGui::IsWindowHovered();
         Dialog::OnImGuiViewport(viewport_input);
-        ImGui::End();
     }
+    ImGui::End();
     
     ImGui::End();
 
