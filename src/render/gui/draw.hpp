@@ -6,6 +6,7 @@
 #include <string_view>
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
+#include <glm/mat3x3.hpp>
 #include "drawlist.hpp"
 #include "fontmanager.hpp"
 
@@ -58,8 +59,24 @@ public:
      *  If `texture` is `nullptr`, nothing will be drawn.
      */
     void TextureEllipse(Texture::Ptr texture, uint32_t num_points, glm::vec2 top_left, glm::vec2 size = glm::vec2(NAN));
+    inline void PushTransform(glm::mat3 tform) {
+        if (!m_transforms.empty())
+            tform = m_transforms.back() * tform;
+        m_transforms.emplace_back(tform);
+    }
+    inline void PopTransform() {
+        if (!m_transforms.empty())
+            m_transforms.pop_back();
+    }
     
 private:
+    inline void PushVertex(Vertex v) {
+        glm::vec3 vec{v.x, v.y, 1.f};
+        if (!m_transforms.empty())
+            vec = m_transforms.back() * vec;
+        v.x = vec.x, v.y = vec.y;
+        m_drawlist.vertices.emplace_back(v);
+    }
     void TextInternal(FontHandle font, glm::vec2 top_left, const void* begin, const void* end, uint8_t stride);
     /** Internal utility to add rectangle geometry */
     void RectUv(glm::vec2 xy, glm::vec2 size, glm::vec2 uv, glm::vec2 uv_wh);
@@ -90,6 +107,7 @@ private:
     Texture::Ptr m_texture = nullptr;
     glm::vec4 m_clip = NO_CLIP;
     std::vector<glm::vec4> m_clip_stack;
+    std::vector<glm::mat3> m_transforms;
 };
 
 }

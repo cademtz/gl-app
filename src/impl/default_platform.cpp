@@ -6,7 +6,7 @@
 void Platform::Setup() {
     ImGui::CreateContext();
     ImGui::GetIO().IniFilename = nullptr;
-    impl::window::setup();
+    impl::window::setup(1280, 720);
     impl::render::setup();
 }
 

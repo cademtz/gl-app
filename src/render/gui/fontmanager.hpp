@@ -1,15 +1,9 @@
 #pragma once
-#include <memory>
+#include "forward.hpp"
 
 struct FontBakeConfig;
 
 namespace gui {
-
-class FontAtlas;
-class _FontHandle;
-
-/** A lightweight font handle. Passing by value is recommended. */
-using FontHandle = std::shared_ptr<_FontHandle>;
 
 /**
  * Create, store, and update all fonts used for GUI rendering.

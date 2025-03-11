@@ -24,15 +24,19 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
-#include <imgui.h>
+#include <imgui_internal.h>
+#include "dialog.hpp"
 
 gui::Draw draw_gui;
-gui::FontHandle default_font = gui::FontManager::CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 32, 3));
 std::unique_ptr<DemoStuff> demostuff = std::make_unique<DemoStuff>();
 hid::InputQueue input_queue;
+static ImGuiID dock_space_id = 0;
 
 void App::OnSetup() {
     Platform::SetInputHandler(&input_queue);
+    Dialog::OnSetup();
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    font_default = gui::FontManager::CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 32, 3));
 
     Platform::AddRepeatingTask([] {
         gui::FontManager::RunQueue();
@@ -65,9 +69,10 @@ void App::Render() {
 
     size_t num_drawcalls = draw_gui.GetDrawList().calls.size();
     draw_gui.ResetColor();
-    draw_gui.TextAscii(default_font, glm::vec2(32, 50),
+    draw_gui.TextAscii(font_default, glm::vec2(32, 50),
         std::to_string(num_drawcalls) + " draw calls\n"
     );
+    Dialog::OnDrawGui(draw_gui);
 
     static auto draw_sticks = sticks::Draw();
 
@@ -85,6 +90,45 @@ void App::Render() {
     render_sticks->Render();
 
     ImGui::NewFrame();
-    ImGui::ShowDemoWindow();
+    dock_space_id = ImGui::GetID("root");
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+    static bool is_docking_setup = false;
+    if (!is_docking_setup) {
+        is_docking_setup = true;
+        ImGuiID imgui_dock_center;
+        ImGui::DockBuilderAddNode(dock_space_id);
+        ImGui::DockBuilderSetNodeSize(dock_space_id, viewport->Size);
+        ImGui::DockBuilderSplitNode(dock_space_id, ImGuiDir_Left, 0.2f, &imgui_dock_left, &imgui_dock_center);
+        Dialog::OnImGuiDock();
+        ImGui::DockBuilderDockWindow("Viewport", imgui_dock_center);
+        ImGui::DockBuilderFinish(dock_space_id);
+    }
+    
+    ImGui::SetNextWindowPos({0.f,0.f});
+    ImGui::SetNextWindowSize(viewport->Size);
+    ImGui::SetNextWindowViewport(viewport->ID);
+
+    const ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoBackground
+    | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
+    | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::Begin("Editor", nullptr, window_flags);
+    ImGui::PopStyleVar(3);
+
+    ImGui::DockSpace(dock_space_id);
+    Dialog::OnImGui();
+    if (ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoBackground))
+    {
+        bool viewport_input = ImGui::IsWindowHovered();
+        Dialog::OnImGuiViewport(viewport_input);
+        ImGui::End();
+    }
+    
+    ImGui::End();
+
     ImGui::Render();
 }

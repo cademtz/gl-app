@@ -55,6 +55,7 @@ target_sources(Glap PRIVATE
 	deps/imgui/imgui_tables.cpp
 	deps/imgui/imgui_draw.cpp
 	deps/imgui/imgui_demo.cpp
+	deps/imgui/misc/cpp/imgui_stdlib.cpp
 )
 
 include_directories(

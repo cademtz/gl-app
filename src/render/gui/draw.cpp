@@ -24,6 +24,7 @@ void Draw::Clear() {
 
     m_clip_stack.clear();
     m_clip = NO_CLIP;
+    m_transforms.clear();
 
     ResetColor();
 }
@@ -229,7 +230,7 @@ void Draw::RectUv(glm::vec2 xy, glm::vec2 size, glm::vec2 uv, glm::vec2 uv_wh) {
     uint32_t index_off = m_drawlist.vertices.size();
     
     for (const glm::vec2& wh : rect_wh) {
-        m_drawlist.vertices.emplace_back(Vertex{
+        PushVertex(Vertex{
             xy.x + size.x * wh.x, xy.y + size.y * wh.y,
             uv.x + uv_wh.x * wh.x , uv.y + uv_wh.y * wh.y,
             m_rgba[0], m_rgba[1], m_rgba[2], m_rgba[3]
@@ -257,7 +258,7 @@ void Draw::EllipseUv(uint32_t num_points, glm::vec2 xy, glm::vec2 size, glm::vec
         glm::vec2 point = radii * rotate + centered_offset;
         glm::vec2 uv_point = uv_radii * rotate + uv_centered_offset;
         
-        m_drawlist.vertices.push_back(Vertex{
+        PushVertex(Vertex{
             point.x, point.y,
             uv_point.x, uv_point.y,
             m_rgba.r, m_rgba.g, m_rgba.b, m_rgba.a

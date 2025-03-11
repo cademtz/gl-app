@@ -6,6 +6,7 @@ target_sources(Glap PUBLIC
     main.cpp
     fnv1a.cpp
     font.cpp
+    dialog.cpp
 )
 
 add_subdirectory(resources)

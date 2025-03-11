@@ -25,7 +25,7 @@ namespace impl::window {
 
 using ::window;
 
-void setup() {
+void setup(int width, int height) {
     glfwSetErrorCallback(error_callback);
 
     if (!glfwInit())
@@ -34,7 +34,7 @@ void setup() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
-    window = glfwCreateWindow(640, 480, "Simple example", NULL, NULL);
+    window = glfwCreateWindow(width, height, "Simple example", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
