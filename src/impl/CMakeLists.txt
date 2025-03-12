@@ -16,7 +16,6 @@ endif()
 ################################
 
 define_impl_list("WINDOW" OPTIONS "GLFW" DEFAULT "GLFW" DOCSTRING "Backend window and input implementation")
-define_impl_list("RENDER" OPTIONS "OPENGL" DEFAULT "OPENGL" DOCSTRING "Backend render implementation")
 define_impl_list("THREADING" OPTIONS "NONE" "EMSCRIPTEN" DEFAULT ${THREADING_DEFAULT} DOCSTRING "Backend threading implementation")
 define_impl_list("RESOURCE" OPTIONS "FILESYSTEM" "EMSCRIPTEN" DEFAULT ${RESOURCE_DEFAULT} DOCSTRING "Resource-loading implementation")
 define_impl_list("PLATFORM" OPTIONS "DEFAULT_" DEFAULT "DEFAULT_" DOCSTRING "Application setup and cleanup implementation")
@@ -30,7 +29,6 @@ define_selected_impl_list()
 #######################################
 
 add_subdirectory(window)
-add_subdirectory(render)
 add_subdirectory(threading)
 add_subdirectory(resource)
 

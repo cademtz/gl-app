@@ -1,8 +1,5 @@
 // Ensure OpenGL is always included before GLFW
-#if _IMPL_RENDER == _IMPL_RENDER_OPENGL
-    #include <impl/render/opengl/opengl.hpp>
-#endif
-
+#include <render/opengl/opengl.hpp>
 #include <GLFW/glfw3.h>
 #include <input/inputhandler.hpp>
 #include <platform.hpp>

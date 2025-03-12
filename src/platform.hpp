@@ -6,6 +6,7 @@
 
 #pragma once
 #include <functional>
+#include <string_view>
 
 namespace hid { class InputHandler; }
 
@@ -55,7 +56,7 @@ void RunTasksForever();
 void AddRepeatingTask(RepeatTaskCallback task);
 /** Get the size of the main window's render buffer in pixels */
 void GetFrameBufferSize(int* out_width, int* out_height);
-void Warning(const char* Msg, const char* File = 0, int Line = -1);
-void Error(const char* Msg, const char* File = 0, int Line = -1);
+void Warning(std::string_view msg, const char* file = 0, int line = -1);
+void Error(std::string_view msg, const char* file = 0, int line = -1);
 
 }

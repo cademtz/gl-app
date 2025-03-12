@@ -106,17 +106,15 @@ public:
 
 private:
     bool Init() {
-        static OglShader vert_shader(GL_VERTEX_SHADER, VERT_SHADER_SRC);
-        static OglShader frag_shader(GL_FRAGMENT_SHADER, FRAG_SHADER_SRC);
+        static OglShaderPtr vert_shader = OglShader::Compile(ShaderType::VERTEX, VERT_SHADER_SRC);
+        static OglShaderPtr frag_shader = OglShader::Compile(ShaderType::FRAGMENT, FRAG_SHADER_SRC);
 
-        if (!vert_shader.Compile() ||
-            !frag_shader.Compile()
-        ) {
+        if (!vert_shader || !frag_shader) {
             return false;
         }
         
-        if (!m_program.AttachShader(vert_shader) ||
-            !m_program.AttachShader(frag_shader)
+        if (!m_program.AttachShader(*vert_shader) ||
+            !m_program.AttachShader(*frag_shader)
         ) {
             return false;
         }

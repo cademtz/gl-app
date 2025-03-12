@@ -6,3 +6,4 @@ target_sources(Glap PUBLIC
 
 add_subdirectory(gui)
 add_subdirectory(sticks)
+add_subdirectory(opengl)

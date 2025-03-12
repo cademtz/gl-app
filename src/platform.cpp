@@ -3,22 +3,23 @@
 #include <list>
 #include <cstdio>
 #include <cassert>
+#include <string_view>
 
 namespace Platform {
 
 static bool should_close = false;
 static std::list<RepeatTaskCallback> repeat_tasks;
 
-void Warning(const char* Msg, const char* File, int Line) {
-    fprintf(stdout, "[!] %s\n", Msg);
-    if (File)
-        fprintf(stdout, "\t(file \"%s\", line %d)\n", File, Line);
+void Warning(std::string_view msg, const char* file, int line) {
+    fprintf(stdout, "[!] %.*s\n", msg.length(), msg.data());
+    if (file)
+        fprintf(stdout, "\t(file \"%s\", line %d)\n", file, line);
 }
 
-void Error(const char* Msg, const char* File, int Line) {
-    fprintf(stderr, "[!] %s\n", Msg);
-    if (File)
-        fprintf(stderr, "\t(file \"%s\", line %d)\n", File, Line);
+void Error(std::string_view msg, const char* file, int line) {
+    fprintf(stderr, "[!] %.*s\n", msg.length(), msg.length(), msg.data());
+    if (file)
+        fprintf(stderr, "\t(file \"%s\", line %d)\n", file, line);
 
     assert(0 && "Error called");
 }

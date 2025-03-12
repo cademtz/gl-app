@@ -9,7 +9,6 @@
 #include "opengl.hpp"
 
 #if _IMPL_WINDOW == _IMPL_WINDOW_GLFW
-#include <impl/render/opengl/opengl.hpp>
 #include <GLFW/glfw3.h>
 #endif
 

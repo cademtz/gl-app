@@ -1,4 +1,5 @@
 #include "oglrendergui.hpp"
+#include "oglshader.hpp"
 #include <platform.hpp>
 #include <render/gui/rendergui.hpp>
 #include <render/gui/drawlist.hpp>
@@ -42,6 +43,35 @@ _IMPL_GLSL_VERSION_HEADER
 "}";
 
 namespace gui {
+
+OglShaderPtr GetDefaultVertShader() {
+    static OglShaderPtr obj = OglShader::Compile(ShaderType::VERTEX, VERT_SHADER_SRC);
+    if (obj == nullptr)
+        PLATFORM_ERROR("Failed to compile default vertex shader");
+    return obj;
+}
+OglShaderPtr GetDefaultFragShader() {
+    static OglShaderPtr obj = OglShader::Compile(ShaderType::FRAGMENT, FRAG_SHADER_SRC);
+    if (obj == nullptr)
+        PLATFORM_ERROR("Failed to compile default fragment shader");
+    return obj;
+}
+OglProgramPtr GetDefaultProgram() {
+    static OglProgramPtr program;
+    if (program == nullptr) {
+        OglProgramPtr new_program = std::make_shared<OglProgram>();
+        if (!new_program->AttachShader(*GetDefaultVertShader())
+            || !new_program->AttachShader(*GetDefaultFragShader())
+            || !new_program->Link()
+        ) {
+            PLATFORM_ERROR("Failed to link default shaders");
+            return nullptr;
+        }
+        program = new_program;
+    }
+    return program;
+}
+
 std::shared_ptr<RenderGui> RenderGui::GetInstance() {
     static auto ptr = std::make_shared<OglRenderGui>();
     return ptr;
@@ -66,51 +96,9 @@ bool OglRenderGui::Init() {
     uint8_t white_px[4] = { 255, 255, 255, 255 };
     m_default_texture = Texture::Create(TextureInfo(TextureFormat::RGBA_8_32, 1, 1), white_px);
 
-    OglShader vert_shader(GL_VERTEX_SHADER, VERT_SHADER_SRC);
-    OglShader frag_shader(GL_FRAGMENT_SHADER, FRAG_SHADER_SRC);
-
-    if (!vert_shader.Compile() ||
-        !frag_shader.Compile())
-        return false;
-    
-    if (!m_glProgram.AttachShader(vert_shader) ||
-        !m_glProgram.AttachShader(frag_shader)
-    ) {
-        PLATFORM_ERROR("Failed to attach shaders");
-        return false;
-    }
-
-    if (!m_glProgram.Link()) {
-        PLATFORM_ERROR("Failed to link shaders");
-        return false;
-    }
-
-    m_pixel_to_normalized = m_glProgram.GetUniformLocation("pixel_to_normalized");
-    m_texel_to_normalized = m_glProgram.GetUniformLocation("texel_to_normalized");
-    m_in_pos = m_glProgram.GetAttribLocation("in_pos");
-    m_in_uv = m_glProgram.GetAttribLocation("in_uv");
-    m_in_color = m_glProgram.GetAttribLocation("in_color");
-
     glGenBuffers(1, &m_vertex_buffer);
     glGenBuffers(1, &m_index_buffer);
     glGenVertexArrays(1, &m_array_object);
-
-    // While VAO `m_array_object` is active, the following binds and attrib pointers are stored in the object (m_array_object)
-    glBindVertexArray(m_array_object);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
-
-    glEnableVertexAttribArray(m_in_pos);
-    glEnableVertexAttribArray(m_in_uv);
-    glEnableVertexAttribArray(m_in_color);
-
-    glVertexAttribPointer(m_in_pos, 2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)0);
-    glVertexAttribPointer(m_in_uv, 2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)(2 * sizeof(float)));
-    glVertexAttribPointer(m_in_color, 4, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), (void*)(4 * sizeof(float)));
-    
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     return true;
 }
@@ -149,13 +137,23 @@ void OglRenderGui::Render() {
         m = glm::ortho<float>(0, width, height, 0, 1, -1);
     }
 
-    glViewport(0, 0, width, height);
-    glUseProgram(m_glProgram.GlHandle());
-    glBindVertexArray(m_array_object);
 
-    glUniformMatrix4fv(m_pixel_to_normalized, 1, GL_FALSE, (const GLfloat*)&m[0][0]);
+    glViewport(0, 0, width, height);
+    glBindVertexArray(m_array_object);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
 
     for (const gui::DrawCall& call : m_drawlist->calls) {
+        // Bind program
+        OglProgramPtr program = call.program;
+        if (program == nullptr)
+            program = gui::GetDefaultProgram();
+        glUseProgram(program->GlHandle());
+
+        GLint pixel_to_normalized = program->GetUniformLocation("pixel_to_normalized");
+        GLint texel_to_normalized = program->GetUniformLocation("texel_to_normalized");
+        glUniformMatrix4fv(pixel_to_normalized, 1, GL_FALSE, (const GLfloat*)&m[0][0]);
+
         // Bind texture
         Texture::Ptr current_tex = call.texture;
         if (!current_tex)
@@ -169,8 +167,27 @@ void OglRenderGui::Render() {
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
         std::shared_ptr<OglTexture> gl_tex = std::reinterpret_pointer_cast<OglTexture>(current_tex);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, gl_tex->GlHandle());
-        glUniform2f(m_texel_to_normalized, 1.f / gl_tex->GetWidth(), 1.f / gl_tex->GetHeight());
+        glUniform2f(texel_to_normalized, 1.f / gl_tex->GetWidth(), 1.f / gl_tex->GetHeight());
+
+        GLint attrib_in_pos = program->GetAttribLocation("in_pos");
+        GLint attrib_in_uv = program->GetAttribLocation("in_uv");
+        GLint attrib_in_color = program->GetAttribLocation("in_color");
+        
+        // Bind array attributes
+        if (attrib_in_pos != -1) {
+            glEnableVertexAttribArray(attrib_in_pos);
+            glVertexAttribPointer(attrib_in_pos,   2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), reinterpret_cast<void*>(0));
+        }
+        if (attrib_in_uv != -1) {
+            glEnableVertexAttribArray(attrib_in_uv);
+            glVertexAttribPointer(attrib_in_uv,    2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), reinterpret_cast<void*>(2 * sizeof(float)));
+        }
+        if (attrib_in_color != -1) {
+            glEnableVertexAttribArray(attrib_in_color);
+            glVertexAttribPointer(attrib_in_color, 4, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), reinterpret_cast<void*>(4 * sizeof(float)));
+        }
 
         // Clip geometry
         if (glm::isnan(call.clip_rect.x))

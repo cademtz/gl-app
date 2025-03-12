@@ -1,6 +1,6 @@
 #include <platform.hpp>
 #include <imgui.h>
-#include "render/setup.hpp"
+#include <render/opengl/setup.hpp>
 #include "window/setup.hpp"
 
 void Platform::Setup() {

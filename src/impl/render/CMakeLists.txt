@@ -1,5 +1,0 @@
-if (IMPL_RENDER STREQUAL "OPENGL")
-    add_subdirectory(opengl)
-else()
-    message(SEND_ERROR "Missing render implementation")
-endif()

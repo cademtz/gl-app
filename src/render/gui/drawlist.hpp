@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <glm/vec4.hpp>
 #include <render/texture.hpp>
+#include <render/opengl/forward.hpp>
 
 namespace gui {
     static constexpr glm::vec4 NO_CLIP = glm::vec4(NAN);
@@ -33,7 +34,7 @@ namespace gui {
          */
         glm::vec4 clip_rect = NO_CLIP;
         Texture::Ptr texture = nullptr;
-
+        OglProgramPtr program = nullptr;
     };
     
     /**
