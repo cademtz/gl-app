@@ -4,7 +4,6 @@ target_sources(Glap PUBLIC
     app.cpp
     main.cpp
     fnv1a.cpp
-    font.cpp
     dialog.cpp
 )
 

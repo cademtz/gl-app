@@ -7,8 +7,6 @@
 #include <cassert>
 #include <iostream>
 
-namespace gui {
-
 FontAtlas::FontAtlas(const TrueType& tt, const FontBakeConfig& cfg)
 : m_scale(tt.ScaleForPixelHeight(cfg.height_px)), m_oversample(cfg.oversample) {
     ClientTexturePtr glyph_bmp = nullptr;
@@ -115,6 +113,4 @@ bool FontAtlas::GetGlyphTextureRect(uint32_t glyph_id, GlyphRect* out_rect) cons
         return false;
     *out_rect = it->second;
     return true;
-}
-
 }

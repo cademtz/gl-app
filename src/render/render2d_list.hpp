@@ -1,13 +1,14 @@
 #pragma once
-#include <cmath>
 #include <vector>
 #include <cstdint>
 #include <glm/vec4.hpp>
-#include <render/texture.hpp>
-#include <render/opengl/forward.hpp>
+#include <glm/glm.hpp>
+#include <cmath>
+#include "forward.hpp"
+#include "opengl/forward.hpp"
 
-namespace gui {
-    static constexpr glm::vec4 NO_CLIP = glm::vec4(NAN);
+namespace Render2d {
+    static const glm::vec4 NO_CLIP = glm::vec4(NAN);
 
     struct Vertex
     {
@@ -17,7 +18,7 @@ namespace gui {
     };
 
     /**
-     * @brief Parameters of a single call to @ref RenderGui.
+     * @brief Parameters of a single render call.
      * Calls are grouped under a @ref DrawList, which contains all vertices and indices.
      */
     struct DrawCall {
@@ -38,7 +39,7 @@ namespace gui {
     };
     
     /**
-     * @brief A vertex buffer, an index buffer, and a list of @ref DrawCall "draw calls" that use them
+     * @brief A list of draw calls using the same vertex and index buffer.
      */
     struct DrawList {
         std::vector<Vertex> vertices;

@@ -1,16 +1,16 @@
 #pragma once
+#include "forward.hpp"
+#include "font/forward.hpp"
+#include "render2d_list.hpp"
 #include <cmath> // NAN
 #include <vector>
 #include <memory>
-#include <font.hpp>
 #include <string_view>
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
 #include <glm/mat3x3.hpp>
-#include "drawlist.hpp"
-#include "fontmanager.hpp"
 
-namespace gui {
+namespace Render2d {
 
 /**
  * @brief Draw with primitive geometry and textures in traditional screen coordinates.
@@ -23,8 +23,8 @@ public:
 
     /** Clear the draw list and any previously assigned color, clip rect, etc. */
     void Clear();
-    DrawList& GetDrawList() { return m_drawlist; }
-    const DrawList& GetDrawList() const { return m_drawlist; }
+    Render2d::DrawList& GetDrawList() { return m_drawlist; }
+    const Render2d::DrawList& GetDrawList() const { return m_drawlist; }
     void SetColor(const glm::vec4& rgba);
     void SetColor(float r, float g, float b, float a = 1.f) { SetColor(glm::vec4(r,g,b,a)); }
     void ResetColor() { m_rgba = glm::vec4(1); }
@@ -94,7 +94,7 @@ private:
      * @param num_indices The number of new vertices added. Must be a multiple of 3.
      */
     void AddDrawCall(uint32_t num_indices);
-    DrawCall* GetDrawCall();
+    Render2d::DrawCall* GetDrawCall();
 
     glm::vec4 m_rgba = glm::vec4(1);
     DrawList m_drawlist;
@@ -103,7 +103,7 @@ private:
      * Do not access directly. Use @ref GetDrawCall instead.
      * @see GetDrawCall
      */
-    DrawCall* m_drawcall = nullptr;
+    Render2d::DrawCall* m_drawcall = nullptr;
     TexturePtr m_texture = nullptr;
     glm::vec4 m_clip = NO_CLIP;
     std::vector<glm::vec4> m_clip_stack;

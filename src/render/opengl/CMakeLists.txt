@@ -3,6 +3,5 @@ target_sources(Glap PUBLIC
     oglshader.cpp
     oglprogram.cpp
     oglframebuffer.cpp
-    oglrendergui.cpp
     oglrendersticks.cpp
 )

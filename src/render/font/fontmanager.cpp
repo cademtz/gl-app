@@ -5,8 +5,6 @@
 #include <platform.hpp>
 #include <resources/resource.hpp>
 
-namespace gui {
-
 static bool g_cleanup = false;
 
 // The following functions are declared to work around static initialization ordering
@@ -73,6 +71,4 @@ void FontManager::RunQueue() {
 
 void FontManager::Cleanup() {
     g_cleanup = true;
-}
-
 }

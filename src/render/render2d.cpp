@@ -1,17 +1,14 @@
-#include "oglrendergui.hpp"
-#include "oglshader.hpp"
+#include "render2d.hpp"
+#include "texture.hpp"
+#include "opengl/oglshader.hpp"
+#include "opengl/oglprogram.hpp"
+#include "opengl/oglframebuffer.hpp"
 #include <platform.hpp>
-#include <render/gui/drawlist.hpp>
-#include <render/gui/draw.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <memory>
-#include "opengl.hpp"
-#include "oglprogram.hpp"
-#include "oglframebuffer.hpp"
 
-// Debugging
-#include <iostream>
+// Compile these files together
+#include "render2d_draw.cpp"
 
 static const char* VERT_SHADER_SRC =
 _IMPL_GLSL_VERSION_HEADER
@@ -42,7 +39,7 @@ _IMPL_GLSL_VERSION_HEADER
 "   final_frag_color = texture(in_texture, frag_uv).rgba * frag_color;"
 "}";
 
-namespace gui {
+namespace Render2d {
 
 OglShaderPtr GetDefaultVertShader() {
     static OglShaderPtr obj = OglShader::Compile(ShaderType::VERTEX, VERT_SHADER_SRC);
@@ -77,20 +74,15 @@ TexturePtr GetDefaultTexture() {
     return t;
 }
 
-}
-
 static OglFramebuffer& GetFrameBuffer() {
     static OglFramebuffer buffer;
     return buffer;
 }
 
-static const gui::DrawList* m_drawlist;
-
+static const DrawList* m_drawlist;
 static GLuint m_vertex_buffer;
 static GLuint m_index_buffer;
 static GLuint m_array_object;
-
-namespace OglRenderGui {
 
 bool Setup() {
     glGenBuffers(1, &m_vertex_buffer);
@@ -109,7 +101,7 @@ void Cleanup() {
         glDeleteVertexArrays(1, &m_array_object);
 }
 
-void UploadDrawData(const gui::DrawList& list) {
+void UploadDrawData(const DrawList& list) {
     m_drawlist = &list;
     
     glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
@@ -146,11 +138,11 @@ void Render() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
 
-    for (const gui::DrawCall& call : m_drawlist->calls) {
+    for (const DrawCall& call : m_drawlist->calls) {
         // Bind program
         OglProgramPtr program = call.program;
         if (program == nullptr)
-            program = gui::GetDefaultProgram();
+            program = GetDefaultProgram();
         glUseProgram(program->GlHandle());
 
         GLint pixel_to_normalized = program->GetUniformLocation("pixel_to_normalized");
@@ -160,7 +152,7 @@ void Render() {
         // Bind texture
         TexturePtr current_tex = call.texture;
         if (!current_tex)
-            current_tex = gui::GetDefaultTexture();
+            current_tex = GetDefaultTexture();
         
         if (current_tex->GetInfo().premul)
             glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -180,15 +172,15 @@ void Render() {
         // Bind array attributes
         if (attrib_in_pos != -1) {
             glEnableVertexAttribArray(attrib_in_pos);
-            glVertexAttribPointer(attrib_in_pos,   2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), reinterpret_cast<void*>(0));
+            glVertexAttribPointer(attrib_in_pos,   2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(0));
         }
         if (attrib_in_uv != -1) {
             glEnableVertexAttribArray(attrib_in_uv);
-            glVertexAttribPointer(attrib_in_uv,    2, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), reinterpret_cast<void*>(2 * sizeof(float)));
+            glVertexAttribPointer(attrib_in_uv,    2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(2 * sizeof(float)));
         }
         if (attrib_in_color != -1) {
             glEnableVertexAttribArray(attrib_in_color);
-            glVertexAttribPointer(attrib_in_color, 4, GL_FLOAT, GL_FALSE, sizeof(gui::Vertex), reinterpret_cast<void*>(4 * sizeof(float)));
+            glVertexAttribPointer(attrib_in_color, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(4 * sizeof(float)));
         }
 
         // Clip geometry

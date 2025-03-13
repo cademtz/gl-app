@@ -1,10 +1,7 @@
-#include <font.hpp>
+#include "font.hpp"
 #include <memory>
 #include <unordered_map>
-
-class Texture;
-
-namespace gui {
+#include <render/forward.hpp>
 
 /**
  * @brief A font's codepoints pre-rendered into one large texture.
@@ -29,7 +26,7 @@ public:
     float GetScale() const { return m_scale; }
     uint8_t GetOversample() const { return m_oversample; }
     
-    std::shared_ptr<Texture> GetTexture() const { return m_atlas_tex; }
+    TexturePtr GetTexture() const { return m_atlas_tex; }
 
     /**
      * @brief Get a glyph's texture rect.
@@ -45,11 +42,9 @@ public:
 private:
     const float m_scale;
     const uint8_t m_oversample = 1;
-    std::shared_ptr<Texture> m_atlas_tex;
+    TexturePtr m_atlas_tex;
 
     std::unordered_map<uint32_t, GlyphRect> m_glyph_map;
     FontCodepointMap m_codepoint_map;
     FontLineMetrics m_line;
 };
-
-}

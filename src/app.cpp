@@ -1,17 +1,15 @@
 #include "app.hpp"
-#include "font.hpp"
+#include <render/font/font.hpp>
 #include "glm/ext/scalar_constants.hpp"
 #include "platform.hpp"
 #include <render/texture.hpp>
-#include <font.hpp>
-#include <render/gui/draw.hpp>
-#include <render/gui/fontmanager.hpp>
+#include <render/font/fontmanager.hpp>
 #include <glm/glm.hpp>
 #include <cmath>
 
 // Temporary includes for testing
 #include "input/inputqueue.hpp"
-#include "render/opengl/oglrendergui.hpp"
+#include "render/render2d.hpp"
 #include "render/sticks/draw.hpp"
 #include "render/sticks/drawlist.hpp"
 #include "render/sticks/rendersticks.hpp"
@@ -26,19 +24,19 @@
 #include <imgui_internal.h>
 #include "dialog.hpp"
 
-gui::Draw draw_gui;
+Render2d::Draw draw_gui;
 hid::InputQueue input_queue;
 static ImGuiID dock_space_id = 0;
 
 void App::OnSetup() {
     Platform::SetInputHandler(&input_queue);
-    OglRenderGui::Setup();
+    Render2d::Setup();
     Dialog::OnSetup();
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    font_default = gui::FontManager::CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 32, 3));
+    font_default = FontManager::CreateFont(FontBakeConfig("Open_Sans/static/OpenSans-Regular.ttf", 32, 3));
 
     Platform::AddRepeatingTask([] {
-        gui::FontManager::RunQueue();
+        FontManager::RunQueue();
         Platform::PreRender();
         App::Render();
         Platform::PostRender();
@@ -47,8 +45,8 @@ void App::OnSetup() {
 }
 
 void App::OnCleanup() {
-    OglRenderGui::Cleanup();
-    gui::FontManager::Cleanup();
+    Render2d::Cleanup();
+    FontManager::Cleanup();
 }
 
 void App::Render() {
@@ -73,11 +71,11 @@ void App::Render() {
     );
     Dialog::OnDrawGui(draw_gui);
 
-    OglRenderGui::m_screen_w = width;
-    OglRenderGui::m_screen_h = height;
-    OglRenderGui::render_target = nullptr;
-    OglRenderGui::UploadDrawData(draw_gui.GetDrawList());
-    OglRenderGui::Render();
+    Render2d::m_screen_w = width;
+    Render2d::m_screen_h = height;
+    Render2d::render_target = nullptr;
+    Render2d::UploadDrawData(draw_gui.GetDrawList());
+    Render2d::Render();
 
     ImGui::NewFrame();
     dock_space_id = ImGui::GetID("root");

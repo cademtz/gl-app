@@ -1,5 +1,5 @@
 target_sources(Glap PUBLIC
-    draw.cpp
+    font.cpp
     fontatlas.cpp
     fontmanager.cpp
 )

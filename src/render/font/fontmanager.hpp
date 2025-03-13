@@ -3,8 +3,6 @@
 
 struct FontBakeConfig;
 
-namespace gui {
-
 /**
  * Create, store, and update all fonts used for GUI rendering.
  * Fonts are not updated or created immediately.
@@ -21,5 +19,3 @@ public:
     /** Call this before the application exits. */
     static void Cleanup();
 };
-
-}

@@ -7,7 +7,7 @@
 #include <memory>
 #include <imgui_internal.h>
 #include <misc/cpp/imgui_stdlib.h>
-#include <render/gui/draw.hpp>
+#include <render/render2d_draw.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <util/defer.hpp>
 
@@ -71,7 +71,7 @@ struct Graph {
 static Graph graph;
 static NodePtr selected_node_ptr;
 
-void DrawNode(gui::Draw& draw, std::shared_ptr<Node> node);
+void DrawNode(Render2d::Draw& draw, std::shared_ptr<Node> node);
 glm::mat3 ViewToWorld();
 glm::mat3 WorldToView();
 
@@ -194,7 +194,7 @@ glm::mat3 ViewToWorld() {
     };
 }
 
-void OnDrawGui(gui::Draw& draw) {
+void OnDrawGui(Render2d::Draw& draw) {
     // Draw grid
     int width, height;
     Platform::GetFrameBufferSize(&width, &height);
@@ -226,7 +226,7 @@ void OnDrawGui(gui::Draw& draw) {
         DrawNode(draw, selected_node);
 }
 
-void DrawNode(gui::Draw& draw, std::shared_ptr<Node> node) {
+void DrawNode(Render2d::Draw& draw, std::shared_ptr<Node> node) {
     draw.SetColor(1,1,1);
     draw.Rect(node->pos.x, node->pos.y, NODE_WIDTH, NODE_HEIGHT);
 

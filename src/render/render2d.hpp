@@ -1,11 +1,9 @@
 #pragma once
-#include <render/gui/forward.hpp>
-#include <render/forward.hpp>
-#include "opengl.hpp"
+#include "forward.hpp"
+#include "render2d_list.hpp"
+#include "render2d_draw.hpp"
 
-namespace gui { class DrawList; }
-
-namespace OglRenderGui {
+namespace Render2d {
     inline float m_screen_w = 0;
     inline float m_screen_h = 0;
     /// @brief `nullptr` will render to the screen
@@ -15,6 +13,6 @@ namespace OglRenderGui {
     bool Setup();
     void Cleanup();
 
-    void UploadDrawData(const gui::DrawList& list);
+    void UploadDrawData(const DrawList& list);
     void Render();
-};
+}

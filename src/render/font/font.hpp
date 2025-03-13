@@ -1,5 +1,5 @@
 #pragma once
-
+#include "forward.hpp"
 #include <stb_truetype.h>
 #include <unordered_map>
 #include <fnv1a.hpp>
@@ -13,7 +13,6 @@
 // This way, if a user types a previously-unloaded codepoint then
 // the app can load the entire block it belongs in
 
-typedef uint32_t codepoint_t;
 class Resource;
 
 struct UnicodeRange {

@@ -1,15 +1,18 @@
-#include "draw.hpp"
+#include "render2d_draw.hpp"
+#include "font/fontmanager.hpp"
+#include "font/fontatlas.hpp"
+#include "font/font.hpp"
 #include "glm/glm.hpp"
 #include "glm/ext/vector_float2.hpp"
 #include "glm/ext/scalar_constants.hpp"
-#include "fontatlas.hpp"
+#include <render/texture.hpp>
 #include <resources/resource.hpp>
 #include <array>
 
 // Debugging
 #include <iostream>
 
-namespace gui {
+namespace Render2d {
 
 static constexpr std::array<uint32_t, 6> rect_indices = { 0,1,2,2,3,0 };
 static constexpr std::array<glm::vec2, 4> rect_wh = { glm::vec2{0.f,0.f}, {1,0}, {1,1}, {0,1} };
@@ -230,7 +233,7 @@ void Draw::RectUv(glm::vec2 xy, glm::vec2 size, glm::vec2 uv, glm::vec2 uv_wh) {
     uint32_t index_off = m_drawlist.vertices.size();
     
     for (const glm::vec2& wh : rect_wh) {
-        PushVertex(Vertex{
+        PushVertex(Render2d::Vertex{
             xy.x + size.x * wh.x, xy.y + size.y * wh.y,
             uv.x + uv_wh.x * wh.x , uv.y + uv_wh.y * wh.y,
             m_rgba[0], m_rgba[1], m_rgba[2], m_rgba[3]
@@ -258,7 +261,7 @@ void Draw::EllipseUv(uint32_t num_points, glm::vec2 xy, glm::vec2 size, glm::vec
         glm::vec2 point = radii * rotate + centered_offset;
         glm::vec2 uv_point = uv_radii * rotate + uv_centered_offset;
         
-        PushVertex(Vertex{
+        PushVertex(Render2d::Vertex{
             point.x, point.y,
             uv_point.x, uv_point.y,
             m_rgba.r, m_rgba.g, m_rgba.b, m_rgba.a
@@ -292,7 +295,7 @@ void Draw::AddDrawCall(uint32_t num_indices) {
     assert((num_indices % 3 == 0) && "num_indices must be a multiple of 3 to create triangles");
     assert(num_indices <= m_drawlist.indices.size() && "num_indices is greater than the total available indices");
     
-    DrawCall* call = GetDrawCall();
+    Render2d::DrawCall* call = GetDrawCall();
 
     if (call->index_count == 0)
         call->index_offset = m_drawlist.indices.size() - num_indices;
@@ -305,13 +308,13 @@ void Draw::AddDrawCall(uint32_t num_indices) {
     call->index_count += num_indices;
 }
 
-DrawCall* Draw::GetDrawCall() {
+Render2d::DrawCall* Draw::GetDrawCall() {
     if (m_drawcall)
         return m_drawcall;
     
     if (!m_drawlist.calls.empty()) {
         // Check if we can just append data to the last draw call
-        DrawCall* prev = &m_drawlist.calls.back();
+        Render2d::DrawCall* prev = &m_drawlist.calls.back();
         if (prev->clip_rect == m_clip && prev->texture == m_texture) {
             m_drawcall = prev;
             return prev;
@@ -319,7 +322,7 @@ DrawCall* Draw::GetDrawCall() {
     }
 
     // Start a new call
-    m_drawcall = &m_drawlist.calls.emplace_back(DrawCall{
+    m_drawcall = &m_drawlist.calls.emplace_back(Render2d::DrawCall{
         0, 0, m_clip, m_texture
     });
     return m_drawcall;

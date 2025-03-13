@@ -20,3 +20,10 @@ class ClientTexture;
 using TexturePtr = std::shared_ptr<Texture>;
 using ClientTexturePtr = std::shared_ptr<ClientTexture>;
 using ClientTextureConstPtr = std::shared_ptr<const ClientTexture>;
+
+namespace Render2d {
+    struct Vertex;
+    struct DrawCall;
+    struct DrawList;
+    class Draw;
+}
