@@ -10,9 +10,6 @@
 // Temporary includes for testing
 #include "input/inputqueue.hpp"
 #include "render/render2d.hpp"
-#include "render/sticks/draw.hpp"
-#include "render/sticks/drawlist.hpp"
-#include "render/sticks/rendersticks.hpp"
 #include <chrono>
 #include <string>
 #include <vector>

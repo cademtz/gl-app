@@ -6,5 +6,4 @@ target_sources(Glap PUBLIC
 )
 
 add_subdirectory(font)
-add_subdirectory(sticks)
 add_subdirectory(opengl)
