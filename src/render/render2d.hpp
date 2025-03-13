@@ -12,6 +12,8 @@ namespace Render2d {
 
     bool Setup();
     void Cleanup();
+    void PreRender();
+    void PostRender();
 
     void UploadDrawData(const DrawList& list);
     void Render();

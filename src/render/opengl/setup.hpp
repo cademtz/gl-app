@@ -1,10 +1,4 @@
 #pragma once
 
-namespace impl::render {
-
-void setup();
-void cleanup();
-void PreRender();
-void PostRender();
-
-}
+void OglSetup();
+void OglCleanup();

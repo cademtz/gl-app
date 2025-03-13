@@ -6,6 +6,7 @@
 #include <render/font/fontmanager.hpp>
 #include <glm/glm.hpp>
 #include <cmath>
+#include <render/opengl/setup.hpp>
 
 // Temporary includes for testing
 #include "input/inputqueue.hpp"
@@ -21,11 +22,16 @@
 #include <imgui_internal.h>
 #include "dialog.hpp"
 
+#define IMGUI_IMPL_OPENGL_LOADER_CUSTOM
+#include <backends/imgui_impl_opengl3.cpp>
+
 Render2d::Draw draw_gui;
 hid::InputQueue input_queue;
 static ImGuiID dock_space_id = 0;
 
 void App::OnSetup() {
+    OglSetup();
+    ImGui_ImplOpenGL3_Init();
     Platform::SetInputHandler(&input_queue);
     Render2d::Setup();
     Dialog::OnSetup();
@@ -44,6 +50,8 @@ void App::OnSetup() {
 void App::OnCleanup() {
     Render2d::Cleanup();
     FontManager::Cleanup();
+    ImGui_ImplOpenGL3_Shutdown();
+    OglCleanup();
 }
 
 void App::Render() {
@@ -74,6 +82,7 @@ void App::Render() {
     Render2d::UploadDrawData(draw_gui.GetDrawList());
     Render2d::Render();
 
+    ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
     dock_space_id = ImGui::GetID("root");
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -116,4 +125,5 @@ void App::Render() {
     ImGui::End();
 
     ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }

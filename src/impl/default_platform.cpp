@@ -7,21 +7,17 @@ void Platform::Setup() {
     ImGui::CreateContext();
     ImGui::GetIO().IniFilename = nullptr;
     impl::window::setup(1280, 720);
-    impl::render::setup();
 }
 
 void Platform::Cleanup() {
-    impl::render::cleanup();
     impl::window::cleanup();
     ImGui::DestroyContext();
 }
 
 void Platform::PreRender() {
     impl::window::PreRender();
-    impl::render::PreRender();
 }
 
 void Platform::PostRender() {
-    impl::render::PostRender();
     impl::window::PostRender();
 }

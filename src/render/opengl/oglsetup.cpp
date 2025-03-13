@@ -12,9 +12,6 @@
 #include <GLFW/glfw3.h>
 #endif
 
-#define IMGUI_IMPL_OPENGL_LOADER_CUSTOM
-#include <backends/imgui_impl_opengl3.cpp>
-
 static void load_opengl() {
     #ifdef GLAD_GL
         #ifdef GLFW_VERSION_MAJOR // Load with the help of GLFW
@@ -35,26 +32,12 @@ static void load_opengl() {
     #endif
 }
 
-namespace impl::render {
-
-void setup() {
+void OglSetup() {
     load_opengl();
     
     // Enable alpha/transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    ImGui_ImplOpenGL3_Init();
 }
 
-void cleanup() {
-    ImGui_ImplOpenGL3_Shutdown();
-}
-
-void PreRender() {
-    ImGui_ImplOpenGL3_NewFrame();
-}
-void PostRender() {
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-
-}
+void OglCleanup() {}
