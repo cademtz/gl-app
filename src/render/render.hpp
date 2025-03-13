@@ -14,12 +14,12 @@ public:
     /** Supported output/target format. Currently, it's always RGBA. */
     virtual TextureFormat GetOutputFormat() = 0;
     /** @return The texture being rendered to, or `nullptr` for the screen */
-    Texture::Ptr GetTarget() { return m_target; }
+    TexturePtr GetTarget() { return m_target; }
     /**
      * @brief Set the screen or texture to be rendered to
      * @param tex The texture, or `nullptr` for the screen
      */
-    void SetTarget(Texture::Ptr tex = nullptr) {
+    void SetTarget(TexturePtr tex = nullptr) {
         m_target = tex;
         SetTargetInternal();
     }
@@ -29,5 +29,5 @@ protected:
     virtual void SetTargetInternal() {}
 
 private:
-    Texture::Ptr m_target = nullptr;
+    TexturePtr m_target = nullptr;
 };

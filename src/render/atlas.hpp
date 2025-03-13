@@ -19,12 +19,12 @@ public:
     /**
      * @brief Load and return the texture
      */
-    virtual ClientTexture::ConstPtr GetTexture() = 0;
+    virtual ClientTextureConstPtr GetTexture() = 0;
 
     /**
      * @brief Use an existing texture as a texture loader
      */
-    static CTextureLoader::Ptr FromClientTexture(ClientTexture::ConstPtr texture);
+    static CTextureLoader::Ptr FromClientTexture(ClientTextureConstPtr texture);
 };
 
 /**
@@ -32,16 +32,16 @@ public:
  */
 class CClientTextureInput : public CTextureLoader {
 public:
-    CClientTextureInput(ClientTexture::ConstPtr texture) : m_texture(texture) {}
-    const TextureInfo& GetTextureInfo() override { return *m_texture; }
-    ClientTexture::ConstPtr GetTexture() override { return m_texture; }
+    CClientTextureInput(ClientTextureConstPtr texture) : m_texture(texture) {}
+    const TextureInfo& GetTextureInfo() override { return m_texture->GetInfo(); }
+    ClientTextureConstPtr GetTexture() override { return m_texture; }
 
-    static CTextureLoader::Ptr Create(ClientTexture::ConstPtr texture) {
+    static CTextureLoader::Ptr Create(ClientTextureConstPtr texture) {
         return std::make_shared<CClientTextureInput>(texture);
     }
 
 private:
-    const ClientTexture::ConstPtr m_texture;
+    const ClientTextureConstPtr m_texture;
 };
 
 /**
@@ -103,7 +103,7 @@ public:
     /**
      * @brief Get the current atlas texture
      */
-    Texture::Ptr GetPackedTexture() const;
+    TexturePtr GetPackedTexture() const;
     
     /**
      * @brief Pack the input textures inside the atlas.
@@ -130,5 +130,5 @@ private:
      */
     std::unordered_map<const CTextureLoader*, Node> m_nodes;
     bool m_is_packed = false;
-    Texture::Ptr m_packed_tex;
+    TexturePtr m_packed_tex;
 };

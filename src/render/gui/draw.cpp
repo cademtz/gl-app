@@ -188,10 +188,10 @@ void Draw::Rect(glm::vec2 top_left, glm::vec2 size) {
     TextureRect(nullptr, top_left, size);
 }
 
-void Draw::TextureRect(Texture::Ptr texture, glm::vec2 top_left, glm::vec2 size) {
+void Draw::TextureRect(TexturePtr texture, glm::vec2 top_left, glm::vec2 size) {
     glm::vec2 tex_size = glm::vec2(0);
     if (texture != nullptr)
-        tex_size = glm::vec2(texture->GetWidth(), texture->GetHeight());
+        tex_size = glm::vec2(texture->GetInfo().width, texture->GetInfo().height);
 
     if (glm::isnan(size.x)) {
         if (tex_size.x == 0 || tex_size.y == 0)
@@ -208,10 +208,10 @@ void Draw::Ellipse(uint32_t num_points, glm::vec2 top_left, glm::vec2 size) {
     TextureEllipse(nullptr, num_points, top_left, size);
 }
 
-void Draw::TextureEllipse(Texture::Ptr texture, uint32_t num_points, glm::vec2 top_left, glm::vec2 size) {
+void Draw::TextureEllipse(TexturePtr texture, uint32_t num_points, glm::vec2 top_left, glm::vec2 size) {
     glm::vec2 tex_size = glm::vec2(0);
     if (texture != nullptr)
-        tex_size = glm::vec2(texture->GetWidth(), texture->GetHeight());
+        tex_size = glm::vec2(texture->GetInfo().width, texture->GetInfo().height);
 
     if (glm::isnan(size.x)) {
         if (tex_size.x == 0 || tex_size.y == 0)
@@ -273,7 +273,7 @@ glm::vec2 Draw::VecOrDefault(glm::vec2 value, glm::vec2 default_value) {
     return glm::isnan(value.x) ? default_value : value;
 }
 
-void Draw::SetTexture(Texture::Ptr texture) {
+void Draw::SetTexture(TexturePtr texture) {
     // If the texture will change
     if (m_texture != texture)
         OnDrawParamsChanged();

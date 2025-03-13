@@ -11,7 +11,7 @@ namespace gui {
 
 FontAtlas::FontAtlas(const TrueType& tt, const FontBakeConfig& cfg)
 : m_scale(tt.ScaleForPixelHeight(cfg.height_px)), m_oversample(cfg.oversample) {
-    ClientTexture::Ptr glyph_bmp = nullptr;
+    ClientTexturePtr glyph_bmp = nullptr;
     std::unordered_map<uint32_t, uint32_t> glyph_to_rect;
     RectPacker rectpack;
 
@@ -60,14 +60,14 @@ FontAtlas::FontAtlas(const TrueType& tt, const FontBakeConfig& cfg)
                 (uint16_t)packed_rect.x, (uint16_t)packed_rect.y,
                 (uint16_t)packed_rect.w, (uint16_t)packed_rect.h
             };
-            ClientTexture::Ptr glyph_rgba = ClientTexture::Create(TextureInfo(TextureFormat::RGBA_8_32, box.w, box.h));
+            ClientTexturePtr glyph_rgba = ClientTexture::Create(TextureInfo(TextureFormat::RGBA_8_32, box.w, box.h));
 
             {
                 GlyphRect ss_rect = box;
                 ss_rect.x *= m_oversample, ss_rect.y *= m_oversample, ss_rect.w *= m_oversample, ss_rect.h *= m_oversample;
 
                 // Rasterize
-                if (!glyph_bmp || glyph_bmp->GetWidth() < ss_rect.w || glyph_bmp->GetHeight() < ss_rect.h)
+                if (!glyph_bmp || glyph_bmp->GetInfo().width < ss_rect.w || glyph_bmp->GetInfo().height < ss_rect.h)
                     glyph_bmp = ClientTexture::Create(TextureInfo(TextureFormat::A_8_8, ss_rect.w, ss_rect.h));
 
                 bool ok = tt.MakeGlyphBitmap(
@@ -76,7 +76,7 @@ FontAtlas::FontAtlas(const TrueType& tt, const FontBakeConfig& cfg)
                     0, 0,
                     glyph_bmp->GetData(),
                     ss_rect.w, ss_rect.h,
-                    glyph_bmp->GetRowStride()
+                    glyph_bmp->GetInfo().GetRowStride()
                 );
                 assert(ok && "Failed to render glyph");
 

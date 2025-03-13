@@ -1,12 +1,12 @@
 #include "oglframebuffer.hpp"
-#include "ogltexture.hpp"
+#include <render/texture.hpp>
 #include <stdio.h>
 #include <assert.h>
 
-void OglFramebuffer::SetColorAttachment(std::shared_ptr<Texture> tex) {
+void OglFramebuffer::SetColorAttachment(TexturePtr tex) {
     GLuint tex_handle = 0;
     if (tex)
-        tex_handle = std::reinterpret_pointer_cast<OglTexture>(tex)->GlHandle();
+        tex_handle = tex->GlHandle();
     
     SetColorAttachmentInternal(tex_handle, 0);
 }

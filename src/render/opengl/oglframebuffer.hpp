@@ -1,5 +1,5 @@
 #include "opengl.hpp"
-#include <memory>
+#include <render/forward.hpp>
 
 class Texture;
 
@@ -10,11 +10,13 @@ class OglFramebuffer {
 public:
     OglFramebuffer() { glGenFramebuffers(1, &m_handle); }
     ~OglFramebuffer() { glDeleteFramebuffers(1, &m_handle); }
-    void SetColorAttachment(std::shared_ptr<Texture> tex = nullptr);
+    void SetColorAttachment(TexturePtr tex = nullptr);
     void SetColorAttachmentInternal(GLuint tex_handle, int index);
     GLuint GlHandle() { return m_handle; }
 
 private:
-    std::shared_ptr<Texture> color_attachment = nullptr;
+    OglFramebuffer(const OglFramebuffer&) = delete;
+    
+    TexturePtr color_attachment = nullptr;
     GLuint m_handle = 0;
 };

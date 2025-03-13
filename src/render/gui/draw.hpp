@@ -50,7 +50,7 @@ public:
      * @param size Rectangle size. The default value will use the texture's size.
      *  If `texture` is `nullptr`, nothing will be drawn.
      */
-    void TextureRect(Texture::Ptr texture, glm::vec2 top_left, glm::vec2 size = glm::vec2(NAN));
+    void TextureRect(TexturePtr texture, glm::vec2 top_left, glm::vec2 size = glm::vec2(NAN));
     void Ellipse(uint32_t num_points, glm::vec2 top_left, glm::vec2 size);
     void Ellipse(uint32_t num_points, float x, float y, float w, float h) { Ellipse(num_points, glm::vec2(x, y), glm::vec2(w, h)); }
     /**
@@ -58,7 +58,7 @@ public:
      * @param size Ellipse size. The default value will use the texture's size.
      *  If `texture` is `nullptr`, nothing will be drawn.
      */
-    void TextureEllipse(Texture::Ptr texture, uint32_t num_points, glm::vec2 top_left, glm::vec2 size = glm::vec2(NAN));
+    void TextureEllipse(TexturePtr texture, uint32_t num_points, glm::vec2 top_left, glm::vec2 size = glm::vec2(NAN));
     inline void PushTransform(glm::mat3 tform) {
         if (!m_transforms.empty())
             tform = m_transforms.back() * tform;
@@ -85,7 +85,7 @@ private:
 
     /** @return `value` if `value` is not NaN. Otherwise, `default_value` */
     static glm::vec2 VecOrDefault(glm::vec2 value, glm::vec2 default_value); 
-    void SetTexture(Texture::Ptr texture);
+    void SetTexture(TexturePtr texture);
     /** Call when the current params like texture or clipping are changing */
     void OnDrawParamsChanged();
     /**
@@ -104,7 +104,7 @@ private:
      * @see GetDrawCall
      */
     DrawCall* m_drawcall = nullptr;
-    Texture::Ptr m_texture = nullptr;
+    TexturePtr m_texture = nullptr;
     glm::vec4 m_clip = NO_CLIP;
     std::vector<glm::vec4> m_clip_stack;
     std::vector<glm::mat3> m_transforms;

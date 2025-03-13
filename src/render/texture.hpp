@@ -3,66 +3,45 @@
 #include <memory>
 #include <cstdint>
 #include <functional>
+#include "forward.hpp"
+#include "opengl/opengl.hpp"
 
-enum class TextureFormat : char {
-    /** RGB, 8-bit channels, total of 24 bits */
-    RGB_8_24,
-    /** RGBA, 8-bit channels, total of 32 bits */
-    RGBA_8_32,
-    /** Alpha, 8-bit channel */
-    A_8_8,
-};
-
-/** Indicate the image format to use */
-enum class ImageTypeHint {
-    NONE, PNG, JPG, GIF, BMP
-};
-
-class TextureInfo {
-public:
+struct TextureInfo {
     /** @param premul Whether the colors will be premultiplied */
     TextureInfo(TextureFormat format, uint32_t width, uint32_t height, bool premul = false)
-        : m_format(format), m_width(width), m_height(height), m_premul(premul) {}
+        : format(format), width(width), height(height), premul(premul) {}
 
-    TextureFormat GetFormat() const { return m_format; }
-    uint32_t GetWidth() const { return m_width; }
-    uint32_t GetHeight() const { return m_height; }
-    /** @return true if color components were multiplied by the alpha */
-    bool IsPremultiplied() const { return m_premul; }
     /** @return Number of bytes per pixel */
     uint32_t GetPixelStride() const;
     /** @return Number of bytes per row */
-    uint32_t GetRowStride() const { return GetPixelStride() * GetWidth(); }
-    /** true if color components were multiplied by the alpha */
-    void SetPremultiplied(bool value) { m_premul = value; }
+    uint32_t GetRowStride() const { return GetPixelStride() * width; }
 
-protected:
-    TextureFormat m_format;
-    uint32_t m_width;
-    uint32_t m_height;
-    bool m_premul;
+    TextureFormat format;
+    uint32_t width;
+    uint32_t height;
+    /// @brief True if color is premultiplied
+    bool premul;
 };
 
 /**
  * @brief Texture data on the client
  */
-class ClientTexture : public TextureInfo {
+class ClientTexture {
 public:
-    using Ptr = std::shared_ptr<ClientTexture>;
-    using ConstPtr = std::shared_ptr<const ClientTexture>;
     using ExpandOp = std::function<void(std::array<uint8_t, 4> input, std::array<uint8_t, 4>& output)>;
 
     ClientTexture(ClientTexture&& other)
-        : TextureInfo(other), m_data(other.m_data), m_free(other.m_free) {
-        other.m_width = 0, other.m_height = 0;
+        : m_info(other.m_info), m_data(other.m_data), m_free(other.m_free) {
+        other.m_info.width = 0, other.m_info.height = 0;
         other.m_data = nullptr;
     }
     ~ClientTexture() { m_free(m_data); }
 
+    const TextureInfo& GetInfo() const { return m_info; }
     const uint8_t* GetData() const { return m_data; }
     uint8_t* GetData() { return m_data; }
     const uint32_t GetPixelOffset(uint32_t x, uint32_t y) const {
-        return y * GetRowStride() + x * GetPixelStride();
+        return y * m_info.GetRowStride() + x * m_info.GetPixelStride();
     }
     const uint8_t* GetPixel(uint32_t x, uint32_t y) const {
         return m_data + GetPixelOffset(x, y);
@@ -75,10 +54,10 @@ public:
      * @brief Write new data to a specified location in the texture
      * @return `true` if the new data was compatible and written
      */
-    bool Write(ClientTexture::ConstPtr new_data, uint32_t x, uint32_t y, uint32_t w = ~(uint32_t)0, uint32_t h = ~(uint32_t)0);
+    bool Write(ClientTextureConstPtr new_data, uint32_t x, uint32_t y, uint32_t w = ~(uint32_t)0, uint32_t h = ~(uint32_t)0);
     /** Create an new texture by converting each pixel's channels to a new format */
-    Ptr Convert(TextureFormat new_format, ExpandOp operation);
-    static Ptr Create(const TextureInfo& info);
+    ClientTexturePtr Convert(TextureFormat new_format, ExpandOp operation);
+    static ClientTexturePtr Create(const TextureInfo& info);
     /**
      * @brief Attempt to parse an image file
      * @param type_hint The image format to parse. May be @ref ImageTypeHint::NONE
@@ -86,7 +65,7 @@ public:
      * @param img_size Size of image data, in bytes
      * @return A new texture, or `nullptr`
      */
-    static Ptr FromImage(ImageTypeHint type_hint, const void* img_data, size_t img_size);
+    static ClientTexturePtr FromImage(ImageTypeHint type_hint, const void* img_data, size_t img_size);
 
 protected:
     using FreeFn = void(void* data);
@@ -95,38 +74,45 @@ protected:
      * @param free Required. When freeing a `nullptr`, no action shall occur.
      */
     ClientTexture(const TextureInfo& info, uint8_t* data, FreeFn free)
-        : TextureInfo(info), m_data(data), m_free(free) {}
+        : m_info(info), m_data(data), m_free(free) {}
     ClientTexture(const ClientTexture&) = delete;
     
 private:
+    TextureInfo m_info;
     uint8_t* m_data;
     FreeFn* const m_free;
 };
 
 /**
- * @brief Handle to a texture on the rendering backend.
- * The texture data may be stored on a GPU, and thus cannot be directly read or written.
+ * @brief Handle to a texture on the rendering hardware.
  */
-class Texture : public TextureInfo
+class Texture
 {
 public:
-    using Ptr = std::shared_ptr<Texture>;
+    Texture(const TextureInfo& info, GLuint id)
+        : m_info(info), m_handle(id) {}
+    ~Texture() { glDeleteTextures(1, &m_handle); }
+
+    const TextureInfo& GetInfo() const { return m_info; }
+    void SetPremultiplied(bool value) { m_info.premul = value; }
 
     /** Resize the texture. Contents will become undefined. */
-    virtual void Resize(uint32_t width, uint32_t height) = 0;
+    void Resize(uint32_t width, uint32_t height);
     /** Write new data to a specified portion of the texture */
-    virtual void Write(uint32_t x, uint32_t y, uint32_t width, uint32_t height, const void* data) = 0;
+    void Write(uint32_t x, uint32_t y, uint32_t width, uint32_t height, const void* data);
     /** Set all pixels to one color */
-    virtual void ClearColor(float r, float g, float b, float a) = 0;
+    void ClearColor(float r, float g, float b, float a);
+    GLuint GlHandle() const { return m_handle; }
+
     /**
-     * @brief Create a new texture. (implementation-defined)
-     * @param data Initial data for the texture. If `data == nullptr`, the initial pixels are undefined
+     * @param data Initial data for the texture. If `data == nullptr` then the initial pixels are undefined
      */
-    static Ptr Create(TextureInfo&& info, const void* data = nullptr);
-    static Ptr Create(ClientTexture::Ptr texture) {
-        return Create(TextureInfo(*texture), texture->GetData());
+    static TexturePtr Create(const TextureInfo& info, const void* data);
+    static TexturePtr Create(ClientTexturePtr texture) {
+        return Create(texture->GetInfo(), texture->GetData());
     }
 
-protected:
-    Texture(TextureInfo&& info) : TextureInfo(std::move(info)) {}
+private:
+    const GLuint m_handle;
+    TextureInfo m_info;
 };

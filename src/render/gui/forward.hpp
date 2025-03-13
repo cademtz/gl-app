@@ -8,4 +8,5 @@ namespace gui {
     using FontHandle = std::shared_ptr<_FontHandle>;
 
     class Draw;
+    struct DrawList;
 }

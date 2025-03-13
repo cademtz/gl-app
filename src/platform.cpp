@@ -17,7 +17,7 @@ void Warning(std::string_view msg, const char* file, int line) {
 }
 
 void Error(std::string_view msg, const char* file, int line) {
-    fprintf(stderr, "[!] %.*s\n", msg.length(), msg.length(), msg.data());
+    fprintf(stderr, "[!] %.*s\n", msg.length(), msg.data());
     if (file)
         fprintf(stderr, "\t(file \"%s\", line %d)\n", file, line);
 

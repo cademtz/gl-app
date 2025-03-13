@@ -1,14 +1,14 @@
 #include "oglrendergui.hpp"
 #include "oglshader.hpp"
 #include <platform.hpp>
-#include <render/gui/rendergui.hpp>
 #include <render/gui/drawlist.hpp>
 #include <render/gui/draw.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 #include "opengl.hpp"
-#include "ogltexture.hpp"
+#include "oglprogram.hpp"
+#include "oglframebuffer.hpp"
 
 // Debugging
 #include <iostream>
@@ -71,19 +71,36 @@ OglProgramPtr GetDefaultProgram() {
     }
     return program;
 }
-
-std::shared_ptr<RenderGui> RenderGui::GetInstance() {
-    static auto ptr = std::make_shared<OglRenderGui>();
-    return ptr;
-}
-}
-
-OglRenderGui::OglRenderGui() {
-   if (!Init())
-       PLATFORM_ERROR("Failed to initialize OglRenderGui");
+TexturePtr GetDefaultTexture() {
+    uint8_t white_px[4] = { 255, 255, 255, 255 };
+    static TexturePtr t = Texture::Create(TextureInfo(TextureFormat::RGBA_8_32, 1, 1), white_px);
+    return t;
 }
 
-OglRenderGui::~OglRenderGui() {
+}
+
+static OglFramebuffer& GetFrameBuffer() {
+    static OglFramebuffer buffer;
+    return buffer;
+}
+
+static const gui::DrawList* m_drawlist;
+
+static GLuint m_vertex_buffer;
+static GLuint m_index_buffer;
+static GLuint m_array_object;
+
+namespace OglRenderGui {
+
+bool Setup() {
+    glGenBuffers(1, &m_vertex_buffer);
+    glGenBuffers(1, &m_index_buffer);
+    glGenVertexArrays(1, &m_array_object);
+
+    return true;
+}
+
+void Cleanup() {
     if (m_vertex_buffer)
         glDeleteBuffers(1, &m_vertex_buffer);
     if (m_index_buffer)
@@ -92,18 +109,7 @@ OglRenderGui::~OglRenderGui() {
         glDeleteVertexArrays(1, &m_array_object);
 }
 
-bool OglRenderGui::Init() {
-    uint8_t white_px[4] = { 255, 255, 255, 255 };
-    m_default_texture = Texture::Create(TextureInfo(TextureFormat::RGBA_8_32, 1, 1), white_px);
-
-    glGenBuffers(1, &m_vertex_buffer);
-    glGenBuffers(1, &m_index_buffer);
-    glGenVertexArrays(1, &m_array_object);
-
-    return true;
-}
-
-void OglRenderGui::UploadDrawData(const gui::DrawList& list) {
+void UploadDrawData(const gui::DrawList& list) {
     m_drawlist = &list;
     
     glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
@@ -120,25 +126,22 @@ void OglRenderGui::UploadDrawData(const gui::DrawList& list) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void OglRenderGui::Render() {
-    float width = ScreenWidth();
-    float height = ScreenHeight();
-    float aspect = width / height;
+void Render() {
+    float aspect = m_screen_w / m_screen_h;
 
-    auto target = GetTarget();
     glm::mat4x4 m;
 
-    if (target) {
-        target->SetPremultiplied(true);
-        m_frame_buffer.SetColorAttachment(target);
-        glBindFramebuffer(GL_FRAMEBUFFER, m_frame_buffer.GlHandle());
-        m = glm::ortho<float>(0, width, 0, height, 1, -1);
+    if (render_target) {
+        render_target->SetPremultiplied(true);
+        GetFrameBuffer().SetColorAttachment(render_target);
+        glBindFramebuffer(GL_FRAMEBUFFER, GetFrameBuffer().GlHandle());
+        m = glm::ortho<float>(0, m_screen_w, 0, m_screen_h, 1, -1);
     } else {
-        m = glm::ortho<float>(0, width, height, 0, 1, -1);
+        m = glm::ortho<float>(0, m_screen_w, m_screen_h, 0, 1, -1);
     }
 
 
-    glViewport(0, 0, width, height);
+    glViewport(0, 0, m_screen_w, m_screen_h);
     glBindVertexArray(m_array_object);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, m_vertex_buffer);
@@ -155,21 +158,20 @@ void OglRenderGui::Render() {
         glUniformMatrix4fv(pixel_to_normalized, 1, GL_FALSE, (const GLfloat*)&m[0][0]);
 
         // Bind texture
-        Texture::Ptr current_tex = call.texture;
+        TexturePtr current_tex = call.texture;
         if (!current_tex)
-            current_tex = m_default_texture;
+            current_tex = gui::GetDefaultTexture();
         
-        if (current_tex->IsPremultiplied())
+        if (current_tex->GetInfo().premul)
             glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-        else if (target)
+        else if (render_target)
             glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
         else 
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
-        std::shared_ptr<OglTexture> gl_tex = std::reinterpret_pointer_cast<OglTexture>(current_tex);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, gl_tex->GlHandle());
-        glUniform2f(texel_to_normalized, 1.f / gl_tex->GetWidth(), 1.f / gl_tex->GetHeight());
+        glBindTexture(GL_TEXTURE_2D, current_tex->GlHandle());
+        glUniform2f(texel_to_normalized, 1.f / current_tex->GetInfo().width, 1.f / current_tex->GetInfo().height);
 
         GLint attrib_in_pos = program->GetAttribLocation("in_pos");
         GLint attrib_in_uv = program->GetAttribLocation("in_uv");
@@ -201,8 +203,8 @@ void OglRenderGui::Render() {
                 irect[i] = (int32_t)glm::round(call.clip_rect[i]);
 
             float new_y = irect.y;
-            if (!target)
-                new_y = height - irect.y - irect[3];
+            if (!render_target)
+                new_y = m_screen_h - irect.y - irect[3];
             glScissor(irect.x, new_y, irect[2], irect[3]);
         }
 
@@ -220,6 +222,4 @@ void OglRenderGui::Render() {
     }
 }
 
-void OglRenderGui::SetTargetInternal() {
-    m_frame_buffer.SetColorAttachment(GetTarget());
 }

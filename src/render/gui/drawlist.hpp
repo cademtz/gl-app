@@ -33,7 +33,7 @@ namespace gui {
          * @brief A rectangle in `{ x, y, w, h }` format
          */
         glm::vec4 clip_rect = NO_CLIP;
-        Texture::Ptr texture = nullptr;
+        TexturePtr texture = nullptr;
         OglProgramPtr program = nullptr;
     };
     

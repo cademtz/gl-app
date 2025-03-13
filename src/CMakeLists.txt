@@ -1,6 +1,5 @@
 
 target_sources(Glap PUBLIC
-    demostuff.cpp
     platform.cpp
     app.cpp
     main.cpp
