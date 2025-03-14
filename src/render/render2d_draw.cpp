@@ -20,25 +20,34 @@ static constexpr std::array<glm::vec2, 4> rect_wh = { glm::vec2{0.f,0.f}, {1,0},
 Draw::Draw() {}
 
 void Draw::Clear() {
-    m_drawcall = nullptr;
     m_drawlist.indices.clear();
     m_drawlist.vertices.clear();
     m_drawlist.calls.clear();
+    m_drawlist.shader_params.Clear();
 
     m_clip_stack.clear();
-    m_clip = NO_CLIP;
     m_transforms.clear();
+    m_params = {};
 
     ResetColor();
+}
+
+void Draw::SetProgram(OglProgramPtr program) {
+    m_dirty_params = true;
+    m_params.program = program;
 }
 
 void Draw::SetColor(const glm::vec4& rgba) { m_rgba = rgba; }
 
 void Draw::PushClip(glm::vec4 new_clip) {
-    if (!glm::isnan(new_clip.x) && !glm::isnan(m_clip.x)) {
+    m_dirty_params = true;
+    if (!glm::isnan(new_clip.x) && !glm::isnan(m_params.clip.x)) {
         // Clamp `new_clip` within the boundaries of the current `m_clip_rect`
         // using { x0,y0, x1,y1 } format
-        glm::vec4 old_corners = glm::vec4(m_clip[0], m_clip[1], m_clip[0] + m_clip[2], m_clip[1] + m_clip[3]);
+        glm::vec4 old_corners = glm::vec4(
+            m_params.clip[0], m_params.clip[1],
+            m_params.clip[0] + m_params.clip[2], m_params.clip[1] + m_params.clip[3]
+        );
         glm::vec4 new_corners = glm::vec4(new_clip[0], new_clip[1], new_clip[0] + new_clip[2], new_clip[1] + new_clip[3]);
 
         // Top-left
@@ -59,21 +68,17 @@ void Draw::PushClip(glm::vec4 new_clip) {
         new_clip[3] -= new_clip[1];
     }
 
-    // If the clipping will change
-    if (new_clip != m_clip)
-        OnDrawParamsChanged();
-
-    m_clip_stack.emplace_back(m_clip);
-    m_clip = new_clip;
+    
+    m_clip_stack.emplace_back(m_params.clip);
+    m_params.clip = new_clip;
 }
 
 void Draw::PopClip() {
+    m_dirty_params = true;
     assert(!m_clip_stack.empty() && "Too many pops");
     glm::vec4 prev_clip = m_clip_stack.back();
-    if (prev_clip != m_clip)
-        OnDrawParamsChanged();
-    m_clip = prev_clip;
     m_clip_stack.pop_back();
+    m_params.clip = prev_clip;
 }
 
 void Draw::Codepoint(FontHandle font, codepoint_t codepoint, glm::vec2 top_left) {
@@ -233,7 +238,7 @@ void Draw::RectUv(glm::vec2 xy, glm::vec2 size, glm::vec2 uv, glm::vec2 uv_wh) {
     uint32_t index_off = m_drawlist.vertices.size();
     
     for (const glm::vec2& wh : rect_wh) {
-        PushVertex(Render2d::Vertex{
+        PushVertex(Vertex{
             xy.x + size.x * wh.x, xy.y + size.y * wh.y,
             uv.x + uv_wh.x * wh.x , uv.y + uv_wh.y * wh.y,
             m_rgba[0], m_rgba[1], m_rgba[2], m_rgba[3]
@@ -261,7 +266,7 @@ void Draw::EllipseUv(uint32_t num_points, glm::vec2 xy, glm::vec2 size, glm::vec
         glm::vec2 point = radii * rotate + centered_offset;
         glm::vec2 uv_point = uv_radii * rotate + uv_centered_offset;
         
-        PushVertex(Render2d::Vertex{
+        PushVertex(Vertex{
             point.x, point.y,
             uv_point.x, uv_point.y,
             m_rgba.r, m_rgba.g, m_rgba.b, m_rgba.a
@@ -277,15 +282,8 @@ glm::vec2 Draw::VecOrDefault(glm::vec2 value, glm::vec2 default_value) {
 }
 
 void Draw::SetTexture(TexturePtr texture) {
-    // If the texture will change
-    if (m_texture != texture)
-        OnDrawParamsChanged();
-    
-    m_texture = texture;
-}
-
-void Draw::OnDrawParamsChanged() {
-    m_drawcall = nullptr;
+    m_dirty_params = true;
+    m_params.texture = texture;
 }
 
 void Draw::AddDrawCall(uint32_t num_indices) {
@@ -295,7 +293,7 @@ void Draw::AddDrawCall(uint32_t num_indices) {
     assert((num_indices % 3 == 0) && "num_indices must be a multiple of 3 to create triangles");
     assert(num_indices <= m_drawlist.indices.size() && "num_indices is greater than the total available indices");
     
-    Render2d::DrawCall* call = GetDrawCall();
+    DrawCall* call = GetDrawCall();
 
     if (call->index_count == 0)
         call->index_offset = m_drawlist.indices.size() - num_indices;
@@ -308,24 +306,21 @@ void Draw::AddDrawCall(uint32_t num_indices) {
     call->index_count += num_indices;
 }
 
-Render2d::DrawCall* Draw::GetDrawCall() {
-    if (m_drawcall)
-        return m_drawcall;
-    
-    if (!m_drawlist.calls.empty()) {
-        // Check if we can just append data to the last draw call
-        Render2d::DrawCall* prev = &m_drawlist.calls.back();
-        if (prev->clip_rect == m_clip && prev->texture == m_texture) {
-            m_drawcall = prev;
-            return prev;
-        }
+DrawCall* Draw::GetDrawCall() {
+    if (m_drawlist.calls.empty()) {
+        // Start a new call
+        m_drawlist.calls.emplace_back(uint32_t{0}, uint32_t{0}, uint32_t{0}, (uint32_t)m_drawlist.shader_params.items.size(), m_params);
+        m_dirty_params = false;
+    } else if (m_dirty_params) {
+        DrawCall& last = m_drawlist.calls.back();
+        uint32_t sp_offset = last.sp_offset + last.sp_count;
+        // Number of shader params added since last call
+        uint32_t sp_count = (uint32_t)m_drawlist.shader_params.items.size() - sp_offset;
+        if (last.params != m_params || sp_count > 0)
+            m_drawlist.calls.emplace_back(uint32_t{0}, uint32_t{0}, sp_offset, sp_count, m_params);
+        m_dirty_params = false;
     }
-
-    // Start a new call
-    m_drawcall = &m_drawlist.calls.emplace_back(Render2d::DrawCall{
-        0, 0, m_clip, m_texture
-    });
-    return m_drawcall;
+    return &m_drawlist.calls.back();
 }
 
 }

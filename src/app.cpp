@@ -68,13 +68,13 @@ void App::Render() {
     // Clear screen with black rect
     draw_gui.SetColor(0,0,0);
     draw_gui.Rect(0, 0, width, height);
+    Dialog::OnDrawGui(draw_gui);
 
     size_t num_drawcalls = draw_gui.GetDrawList().calls.size();
     draw_gui.ResetColor();
     draw_gui.TextAscii(font_default, glm::vec2(32, 50),
         std::to_string(num_drawcalls) + " draw calls\n"
     );
-    Dialog::OnDrawGui(draw_gui);
 
     Render2d::m_screen_w = width;
     Render2d::m_screen_h = height;

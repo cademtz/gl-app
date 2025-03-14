@@ -127,3 +127,60 @@ GLint OglProgram::GetUniformLocation(std::string_view name) const {
 GLint OglProgram::GetAttribLocation(std::string_view name) const {
     return glGetAttribLocation(m_gl_program, name.data());
 }
+
+void OglProgram::SetInt(GLint param, int val) {
+    if (param == -1) return;
+    GLint oldProgram = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &oldProgram);
+    glUseProgram(GlHandle());
+    glUniform1i((GLint)param, val);
+    glUseProgram(oldProgram);
+}
+void OglProgram::SetFloat(GLint param, float val) {
+    if (param == -1) return;
+    GLint oldProgram = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &oldProgram);
+    glUseProgram(GlHandle());
+    glUniform1f((GLint)param, val);
+    glUseProgram(oldProgram);
+}
+void OglProgram::SetVec2(GLint param, const glm::vec2& val) {
+    if (param == -1) return;
+    GLint oldProgram = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &oldProgram);
+    glUseProgram(GlHandle());
+    glUniform2f((GLint)param, val[0], val[1]);
+    glUseProgram(oldProgram);
+}
+void OglProgram::SetVec3(GLint param, const glm::vec3& val) {
+    if (param == -1) return;
+    GLint oldProgram = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &oldProgram);
+    glUseProgram(GlHandle());
+    glUniform3f((GLint)param, val[0], val[1], val[2]);
+    glUseProgram(oldProgram);
+}
+void OglProgram::SetVec4(GLint param, const glm::vec4& val) {
+    if (param == -1) return;
+    GLint oldProgram = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &oldProgram);
+    glUseProgram(GlHandle());
+    glUniform4f((GLint)param, val[0], val[1], val[2], val[3]);
+    glUseProgram(oldProgram);
+}
+void OglProgram::SetMat3(GLint param, const glm::mat3& val) {
+    if (param == -1) return;
+    GLint oldProgram = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &oldProgram);
+    glUseProgram(GlHandle());
+    glUniformMatrix3fv((GLint)param, 1, GL_FALSE, &val[0][0]);
+    glUseProgram(oldProgram);
+}
+void OglProgram::SetMat4(GLint param, const glm::mat4& val) {
+    if (param == -1) return;
+    GLint oldProgram = 0;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &oldProgram);
+    glUseProgram(GlHandle());
+    glUniformMatrix4fv((GLint)param, 1, GL_FALSE, &val[0][0]);
+    glUseProgram(oldProgram);
+}

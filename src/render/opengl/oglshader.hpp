@@ -5,6 +5,11 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#include <glm/mat3x3.hpp>
+#include <glm/mat4x4.hpp>
 
 enum class ShaderType {
     UNKNOWN, VERTEX, FRAGMENT,
@@ -45,6 +50,14 @@ public:
     GLint GetUniformLocation(std::string_view name) const;
     GLint GetAttribLocation(std::string_view name) const;
     GLint GlHandle() const { return m_gl_program; }
+
+    void SetInt(GLint uniform, int val);
+    void SetFloat(GLint uniform, float val);
+    void SetVec2(GLint uniform, const glm::vec2& val);
+    void SetVec3(GLint uniform, const glm::vec3& val);
+    void SetVec4(GLint uniform, const glm::vec4& val);
+    void SetMat3(GLint uniform, const glm::mat3& val);
+    void SetMat4(GLint uniform, const glm::mat4& val);
 
 private:
     struct StringHash {

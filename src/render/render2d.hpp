@@ -1,5 +1,6 @@
 #pragma once
 #include "forward.hpp"
+#include "opengl/forward.hpp"
 #include "render2d_list.hpp"
 #include "render2d_draw.hpp"
 
@@ -14,6 +15,8 @@ namespace Render2d {
     void Cleanup();
     void PreRender();
     void PostRender();
+    OglShaderPtr GetDefaultVertShader();
+    OglShaderPtr GetDefaultFragShader();
 
     void UploadDrawData(const DrawList& list);
     void Render();

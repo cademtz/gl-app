@@ -2,6 +2,7 @@
 #include "forward.hpp"
 #include "font/forward.hpp"
 #include "render2d_list.hpp"
+#include "opengl/oglshader.hpp"
 #include <cmath> // NAN
 #include <vector>
 #include <memory>
@@ -9,6 +10,7 @@
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
 #include <glm/mat3x3.hpp>
+#include <glm/mat4x4.hpp>
 
 namespace Render2d {
 
@@ -25,6 +27,13 @@ public:
     void Clear();
     Render2d::DrawList& GetDrawList() { return m_drawlist; }
     const Render2d::DrawList& GetDrawList() const { return m_drawlist; }
+    void SetProgram(OglProgramPtr program = nullptr);
+    // Tip: Don't use this in a loop where it assigns the same value every time. This kills batching.
+    template <class T>
+    void SetShaderParam(std::string_view name, const T& value) {
+        if (m_params.program != nullptr)
+            m_drawlist.shader_params.Set(m_params.program->GetUniformLocation(name), value);
+    }
     void SetColor(const glm::vec4& rgba);
     void SetColor(float r, float g, float b, float a = 1.f) { SetColor(glm::vec4(r,g,b,a)); }
     void ResetColor() { m_rgba = glm::vec4(1); }
@@ -68,7 +77,6 @@ public:
         if (!m_transforms.empty())
             m_transforms.pop_back();
     }
-    
 private:
     inline void PushVertex(Vertex v) {
         glm::vec3 vec{v.x, v.y, 1.f};
@@ -86,28 +94,22 @@ private:
     /** @return `value` if `value` is not NaN. Otherwise, `default_value` */
     static glm::vec2 VecOrDefault(glm::vec2 value, glm::vec2 default_value); 
     void SetTexture(TexturePtr texture);
-    /** Call when the current params like texture or clipping are changing */
-    void OnDrawParamsChanged();
     /**
      * @brief Add a new draw call that draws the last number of indices, `num_indices`, with the current clipping rect and texture.
      * In most cases, it's appended to a previous draw call with the same parameters.
      * @param num_indices The number of new vertices added. Must be a multiple of 3.
      */
     void AddDrawCall(uint32_t num_indices);
+    /// @brief Get or create a draw call with the same params as `m_params`. This is always the last call.
     Render2d::DrawCall* GetDrawCall();
 
     glm::vec4 m_rgba = glm::vec4(1);
     DrawList m_drawlist;
-    /**
-     * @brief Assigned to the latest existing draw call if it has the same parameters.
-     * Do not access directly. Use @ref GetDrawCall instead.
-     * @see GetDrawCall
-     */
-    Render2d::DrawCall* m_drawcall = nullptr;
-    TexturePtr m_texture = nullptr;
-    glm::vec4 m_clip = NO_CLIP;
     std::vector<glm::vec4> m_clip_stack;
     std::vector<glm::mat3> m_transforms;
+    DrawCallParams m_params;
+    // True if `m_params` has been modified since the last-created call
+    bool m_dirty_params = false;
 };
 
 }

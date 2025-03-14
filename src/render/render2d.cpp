@@ -5,12 +5,13 @@
 #include <platform.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <util/defer.hpp>
 
 // Compile these files together
 #include "render2d_draw.cpp"
 
 static const char* VERT_SHADER_SRC =
-_IMPL_GLSL_VERSION_HEADER
+IMPL_GLSL_VERSION_HEADER
 "uniform mat4 pixel_to_normalized;"
 "uniform vec2 texel_to_normalized;"
 "in vec2 in_pos;"
@@ -26,7 +27,7 @@ _IMPL_GLSL_VERSION_HEADER
 "}";
 
 static const char* FRAG_SHADER_SRC =
-_IMPL_GLSL_VERSION_HEADER
+IMPL_GLSL_VERSION_HEADER
 "precision mediump float;"
 "in vec2 frag_uv;"
 "in vec4 frag_color;"
@@ -39,6 +40,8 @@ _IMPL_GLSL_VERSION_HEADER
 "}";
 
 namespace Render2d {
+
+void BindShaderParams(const DrawList& drawlist, const DrawCall& call, OglProgramPtr program);
 
 OglShaderPtr GetDefaultVertShader() {
     static OglShaderPtr obj = OglShader::Compile(ShaderType::VERTEX, VERT_SHADER_SRC);
@@ -139,17 +142,13 @@ void Render() {
 
     for (const DrawCall& call : m_drawlist->calls) {
         // Bind program
-        OglProgramPtr program = call.program;
+        OglProgramPtr program = call.params.program;
         if (program == nullptr)
             program = GetDefaultProgram();
         glUseProgram(program->GlHandle());
 
-        GLint pixel_to_normalized = program->GetUniformLocation("pixel_to_normalized");
-        GLint texel_to_normalized = program->GetUniformLocation("texel_to_normalized");
-        glUniformMatrix4fv(pixel_to_normalized, 1, GL_FALSE, (const GLfloat*)&m[0][0]);
-
         // Bind texture
-        TexturePtr current_tex = call.texture;
+        TexturePtr current_tex = call.params.texture;
         if (!current_tex)
             current_tex = GetDefaultTexture();
         
@@ -159,10 +158,18 @@ void Render() {
             glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
         else 
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        BindShaderParams(*m_drawlist, call, program);
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, current_tex->GlHandle());
-        glUniform2f(texel_to_normalized, 1.f / current_tex->GetInfo().width, 1.f / current_tex->GetInfo().height);
+
+        program->SetVec2(program->GetUniformLocation("resolution"), glm::vec2{m_screen_w, m_screen_h});
+        program->SetMat4(program->GetUniformLocation("pixel_to_normalized"), m);
+        program->SetVec2(
+            program->GetUniformLocation("texel_to_normalized"),
+            glm::vec2{1.f / current_tex->GetInfo().width, 1.f / current_tex->GetInfo().height}
+        );
 
         GLint attrib_in_pos = program->GetAttribLocation("in_pos");
         GLint attrib_in_uv = program->GetAttribLocation("in_uv");
@@ -183,7 +190,7 @@ void Render() {
         }
 
         // Clip geometry
-        if (glm::isnan(call.clip_rect.x))
+        if (glm::isnan(call.params.clip.x))
             glDisable(GL_SCISSOR_TEST);
         else {
             glEnable(GL_SCISSOR_TEST);
@@ -191,7 +198,7 @@ void Render() {
             
             glm::vec<4, int32_t> irect;
             for (int i = 0; i < 4; ++i)
-                irect[i] = (int32_t)glm::round(call.clip_rect[i]);
+                irect[i] = (int32_t)glm::round(call.params.clip[i]);
 
             float new_y = irect.y;
             if (!render_target)
@@ -210,6 +217,30 @@ void Render() {
     GLenum err;
     while ((err = glGetError()) != GL_NO_ERROR) {
         printf("glError: %X\n", err);
+    }
+}
+
+static void BindShaderParams(const DrawList& drawlist, const DrawCall& call, OglProgramPtr program) {
+    for (uint32_t i = 0; i < call.sp_count; ++i) {
+        const ShaderParam& sp = drawlist.shader_params.items[i + call.sp_offset];
+        switch (sp.type) {
+        case ShaderParamType::INT:
+            program->SetInt(sp.id, drawlist.shader_params.sp_int[sp.index]); break;
+        case ShaderParamType::FLOAT:
+            program->SetFloat(sp.id, drawlist.shader_params.sp_float[sp.index]); break;
+        case ShaderParamType::VEC2:
+            program->SetVec2(sp.id, drawlist.shader_params.sp_vec2[sp.index]); break;
+        case ShaderParamType::VEC3:
+            program->SetVec3(sp.id, drawlist.shader_params.sp_vec3[sp.index]); break;
+        case ShaderParamType::VEC4:
+            program->SetVec4(sp.id, drawlist.shader_params.sp_vec4[sp.index]); break;
+        case ShaderParamType::MAT3X3:
+            program->SetMat3(sp.id, drawlist.shader_params.sp_mat3x3[sp.index]); break;
+        case ShaderParamType::MAT4X4:
+            program->SetMat4(sp.id, drawlist.shader_params.sp_mat4x4[sp.index]); break;
+        default:
+            PLATFORM_ERROR("Unknown ShaderParamType");
+        }
     }
 }
 

@@ -6,5 +6,5 @@
 #include "default_includes.hpp"
 #endif
 
-#define _IMPL_GLSL_VERSION "300 es"
-#define _IMPL_GLSL_VERSION_HEADER "#version " _IMPL_GLSL_VERSION "\n"
+#define IMPL_GLSL_VERSION "300 es"
+#define IMPL_GLSL_VERSION_HEADER "#version " IMPL_GLSL_VERSION "\n"
